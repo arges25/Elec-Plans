@@ -1,0 +1,9 @@
+Copyright (c) 2026 MG Elec & Plans. Tous droits réservés.
+
+Ce logiciel et son code source sont la propriété de leur auteur.
+Aucune licence d'utilisation, de copie, de modification ou de distribution
+n'est accordée sans autorisation écrite préalable.
+
+Les bibliothèques tierces utilisées (React, Vite, Tailwind CSS, Zustand, Dexie,
+Konva, React-Konva, PDF.js, pdf-lib, OpenCV.js, Lucide, Workbox, vite-plugin-pwa…)
+restent soumises à leurs propres licences (MIT, Apache-2.0, ISC, BSD…).
