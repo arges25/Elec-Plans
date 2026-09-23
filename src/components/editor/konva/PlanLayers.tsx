@@ -76,7 +76,17 @@ export const DoorShape = memo(function DoorShape({ door, wall, selected, interac
   );
 });
 
-export const WindowShape = memo(function WindowShape({ win, wall, selected, interactive }: { win: Window; wall: Wall; selected: boolean; interactive: boolean }) {
+export const WindowShape = memo(function WindowShape({
+  win,
+  wall,
+  selected,
+  interactive,
+}: {
+  win: Window;
+  wall: Wall;
+  selected: boolean;
+  interactive: boolean;
+}) {
   const f = openingFrame(wall, win.t, win.width);
   const off = wall.thickness / 4;
   const color = selected ? SELECT_COLOR : '#0369a1';
@@ -86,13 +96,43 @@ export const WindowShape = memo(function WindowShape({ win, wall, selected, inte
       <Line points={[f.a.x, f.a.y, f.b.x, f.b.y]} stroke="#ffffff" strokeWidth={wall.thickness} lineCap="butt" hitStrokeWidth={24} />
       <Line points={pts(off)} stroke={color} strokeWidth={1.6} listening={false} />
       <Line points={pts(-off)} stroke={color} strokeWidth={1.6} listening={false} />
-      <Line points={[f.a.x + f.n.x * (wall.thickness / 2), f.a.y + f.n.y * (wall.thickness / 2), f.a.x - f.n.x * (wall.thickness / 2), f.a.y - f.n.y * (wall.thickness / 2)]} stroke={color} strokeWidth={1.6} listening={false} />
-      <Line points={[f.b.x + f.n.x * (wall.thickness / 2), f.b.y + f.n.y * (wall.thickness / 2), f.b.x - f.n.x * (wall.thickness / 2), f.b.y - f.n.y * (wall.thickness / 2)]} stroke={color} strokeWidth={1.6} listening={false} />
+      <Line
+        points={[
+          f.a.x + f.n.x * (wall.thickness / 2),
+          f.a.y + f.n.y * (wall.thickness / 2),
+          f.a.x - f.n.x * (wall.thickness / 2),
+          f.a.y - f.n.y * (wall.thickness / 2),
+        ]}
+        stroke={color}
+        strokeWidth={1.6}
+        listening={false}
+      />
+      <Line
+        points={[
+          f.b.x + f.n.x * (wall.thickness / 2),
+          f.b.y + f.n.y * (wall.thickness / 2),
+          f.b.x - f.n.x * (wall.thickness / 2),
+          f.b.y - f.n.y * (wall.thickness / 2),
+        ]}
+        stroke={color}
+        strokeWidth={1.6}
+        listening={false}
+      />
     </Group>
   );
 });
 
-export const RoomLabel = memo(function RoomLabel({ room, selected, interactive, fontSize }: { room: Room; selected: boolean; interactive: boolean; fontSize: number }) {
+export const RoomLabel = memo(function RoomLabel({
+  room,
+  selected,
+  interactive,
+  fontSize,
+}: {
+  room: Room;
+  selected: boolean;
+  interactive: boolean;
+  fontSize: number;
+}) {
   return (
     <Text
       id={room.id}
@@ -152,7 +192,9 @@ export const ConnectionLine = memo(function ConnectionLine({
   const label = showNumber && conn.showLabel && conn.type === 'command' && conn.group !== undefined ? `Commande ${conn.group}` : null;
   return (
     <Group listening={interactive} onClick={(e) => selectOnTap('connection', conn.id, e)} onTap={(e) => selectOnTap('connection', conn.id, e)}>
-      {selected && <Line points={bezierToFlatPoints(curve)} bezier stroke="rgba(249,115,22,0.25)" strokeWidth={conn.width + 8} lineCap="round" listening={false} />}
+      {selected && (
+        <Line points={bezierToFlatPoints(curve)} bezier stroke="rgba(249,115,22,0.25)" strokeWidth={conn.width + 8} lineCap="round" listening={false} />
+      )}
       <Line
         points={bezierToFlatPoints(curve)}
         bezier
@@ -164,9 +206,9 @@ export const ConnectionLine = memo(function ConnectionLine({
         perfectDrawEnabled={false}
       />
       {label && (
-        <Label x={mid.x} y={mid.y} offsetX={(label.length * 12 * 0.58 + 8) / 2} offsetY={10} listening={false}>
-          <Tag fill="#ffffff" stroke={conn.color} strokeWidth={1} cornerRadius={6} pointerDirection="none" />
-          <Text text={label} fontSize={12} fontStyle="bold" fontFamily="Helvetica, Arial, sans-serif" fill={conn.color} padding={4} />
+        <Label x={mid.x} y={mid.y} offsetX={(label.length * 10 * 0.58 + 6) / 2} offsetY={8} listening={false}>
+          <Tag fill="#ffffff" stroke={conn.color} strokeWidth={0.8} cornerRadius={5} pointerDirection="none" />
+          <Text text={label} fontSize={10} fontStyle="bold" fontFamily="Helvetica, Arial, sans-serif" fill={conn.color} padding={3} />
         </Label>
       )}
     </Group>
@@ -221,7 +263,20 @@ export const AnnotationNode = memo(function AnnotationNode({ a, selected, intera
         />
       );
     case 'arrow':
-      return <Arrow {...common} x={0} y={0} points={a.points ?? []} stroke={color} fill={color} strokeWidth={a.strokeWidth} pointerLength={a.strokeWidth * 5} pointerWidth={a.strokeWidth * 4} hitStrokeWidth={16} />;
+      return (
+        <Arrow
+          {...common}
+          x={0}
+          y={0}
+          points={a.points ?? []}
+          stroke={color}
+          fill={color}
+          strokeWidth={a.strokeWidth}
+          pointerLength={a.strokeWidth * 5}
+          pointerWidth={a.strokeWidth * 4}
+          hitStrokeWidth={16}
+        />
+      );
     case 'circle':
       return (
         <Ellipse
@@ -242,9 +297,34 @@ export const AnnotationNode = memo(function AnnotationNode({ a, selected, intera
         />
       );
     case 'rect':
-      return <Rect {...common} x={a.x} y={a.y} width={a.width ?? 0} height={a.height ?? 0} stroke={color} strokeWidth={a.strokeWidth} hitStrokeWidth={16} fillEnabled={false} />;
+      return (
+        <Rect
+          {...common}
+          x={a.x}
+          y={a.y}
+          width={a.width ?? 0}
+          height={a.height ?? 0}
+          stroke={color}
+          strokeWidth={a.strokeWidth}
+          hitStrokeWidth={16}
+          fillEnabled={false}
+        />
+      );
     case 'pen':
-      return <Line {...common} x={0} y={0} points={a.points ?? []} stroke={color} strokeWidth={a.strokeWidth} tension={0.4} lineCap="round" lineJoin="round" hitStrokeWidth={16} />;
+      return (
+        <Line
+          {...common}
+          x={0}
+          y={0}
+          points={a.points ?? []}
+          stroke={color}
+          strokeWidth={a.strokeWidth}
+          tension={0.4}
+          lineCap="round"
+          lineJoin="round"
+          hitStrokeWidth={16}
+        />
+      );
   }
 });
 
@@ -280,7 +360,7 @@ export const MeasureNode = memo(function MeasureNode({
   const upright = angle > 90 || angle < -90 ? angle + 180 : angle;
   const fs = 14 / zoom;
   const text = measureText(m, scale);
-  const labelW = text.length * fs * 0.58 + (6 / zoom);
+  const labelW = text.length * fs * 0.58 + 6 / zoom;
   return (
     <Group listening={interactive} onClick={(e) => selectOnTap('measure', m.id, e)} onTap={(e) => selectOnTap('measure', m.id, e)}>
       <Line points={[m.x1, m.y1, m.x2, m.y2]} stroke={color} strokeWidth={1.5 / zoom} hitStrokeWidth={16 / zoom} />

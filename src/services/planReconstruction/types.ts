@@ -45,5 +45,10 @@ export interface PlanReconstructionService {
   id: string;
   label: string;
   isAvailable: () => boolean;
-  reconstruct: (image: ImageData, planSize: { width: number; height: number }, options: ReconstructionOptions, onProgress?: (msg: string) => void) => Promise<ReconstructionResult>;
+  reconstruct: (
+    image: ImageData,
+    planSize: { width: number; height: number },
+    options: ReconstructionOptions,
+    onProgress?: (msg: string) => void,
+  ) => Promise<ReconstructionResult>;
 }

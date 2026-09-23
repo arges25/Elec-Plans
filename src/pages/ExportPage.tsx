@@ -114,7 +114,15 @@ export default function ExportPage() {
           <div>
             <SectionTitle>Mise en page</SectionTitle>
             <Card className="flex flex-col gap-3 p-4">
-              <Segmented ariaLabel="Format" value={opts.format} onChange={(v) => set('format', v)} options={[{ value: 'A4', label: 'A4' }, { value: 'A3', label: 'A3' }]} />
+              <Segmented
+                ariaLabel="Format"
+                value={opts.format}
+                onChange={(v) => set('format', v)}
+                options={[
+                  { value: 'A4', label: 'A4' },
+                  { value: 'A3', label: 'A3' },
+                ]}
+              />
               <Segmented
                 ariaLabel="Orientation"
                 value={opts.orientation}
@@ -142,8 +150,18 @@ export default function ExportPage() {
               <Toggle label="Afficher la légende" checked={opts.showLegend} onChange={(v) => set('showLegend', v)} />
               <Toggle label="Afficher les notes" checked={opts.showNotes} onChange={(v) => set('showNotes', v)} />
               <Toggle label="Afficher les liaisons" checked={opts.showConnections} onChange={(v) => set('showConnections', v)} />
-              <Toggle label="Afficher le plan original" description="Photo, scan ou PDF importé" checked={opts.showOriginal} onChange={(v) => set('showOriginal', v)} />
-              <Toggle label="Afficher le plan reconstruit" description="Murs, portes, fenêtres, pièces" checked={opts.showReconstructed} onChange={(v) => set('showReconstructed', v)} />
+              <Toggle
+                label="Afficher le plan original"
+                description="Photo, scan ou PDF importé"
+                checked={opts.showOriginal}
+                onChange={(v) => set('showOriginal', v)}
+              />
+              <Toggle
+                label="Afficher le plan reconstruit"
+                description="Murs, portes, fenêtres, pièces"
+                checked={opts.showReconstructed}
+                onChange={(v) => set('showReconstructed', v)}
+              />
               <Toggle label="Afficher les annotations" checked={opts.showAnnotations} onChange={(v) => set('showAnnotations', v)} />
               <Toggle label="Afficher les mesures" checked={opts.showMeasures} onChange={(v) => set('showMeasures', v)} />
             </Card>
@@ -226,7 +244,8 @@ export default function ExportPage() {
               ))}
             </div>
             <p className="mt-4 text-xs text-gray-500">
-              PDF vectoriel (symboles, murs, liaisons nets à tout zoom). Plan simplifié destiné à l’implantation électrique : document indicatif, validation par l’électricien.
+              PDF vectoriel (symboles, murs, liaisons nets à tout zoom). Plan simplifié destiné à l’implantation électrique : document indicatif, validation par
+              l’électricien.
             </p>
           </div>
         </div>

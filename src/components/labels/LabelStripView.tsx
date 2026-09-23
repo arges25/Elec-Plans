@@ -25,7 +25,14 @@ export function LabelStripView({
   const style = pxPerMm ? { width: size.width * pxPerMm, height: size.height * pxPerMm } : { width: '100%', aspectRatio: `${size.width} / ${size.height}` };
   return (
     <div className="relative shrink-0 bg-white" style={style}>
-      <svg viewBox={`0 0 ${size.width} ${size.height}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none" dangerouslySetInnerHTML={{ __html: svgInner }} role="img" aria-label={`Étiquettes ${strip.rowName}`} />
+      <svg
+        viewBox={`0 0 ${size.width} ${size.height}`}
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="none"
+        dangerouslySetInnerHTML={{ __html: svgInner }}
+        role="img"
+        aria-label={`Étiquettes ${strip.rowName}`}
+      />
       {onCellClick &&
         strip.cells.map((c) =>
           c.xMm + c.widthMm <= template.rowWidthMm + 0.01 ? (

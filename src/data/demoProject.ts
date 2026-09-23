@@ -53,7 +53,16 @@ export function buildDemoBundle(): ProjectBundle {
   const row1 = { id: 'demo-row-1', name: 'Rangée 1' };
   const row2 = { id: 'demo-row-2', name: 'Rangée 2' };
   let order = 0;
-  const circuit = (rowId: string, number: string, name: string, protection: string, section: string, kind: ElectricalCircuit['kind'] = 'circuit', modules = 1, icon?: string): ElectricalCircuit => ({
+  const circuit = (
+    rowId: string,
+    number: string,
+    name: string,
+    protection: string,
+    section: string,
+    kind: ElectricalCircuit['kind'] = 'circuit',
+    modules = 1,
+    icon?: string,
+  ): ElectricalCircuit => ({
     id: `demo-c-${order}`,
     panelId,
     rowId,

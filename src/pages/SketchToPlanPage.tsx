@@ -9,7 +9,12 @@ import { useProjectPlan } from '../hooks/useProjectPlan';
 import { updatePlan } from '../database/planRepository';
 import { drawToCanvas, get2d, loadImage } from '../services/imageProcessing';
 import { isSupportedImage, saveImageToPlan } from '../services/planImport';
-import { DEFAULT_RECONSTRUCTION_OPTIONS, getReconstructionService, type ReconstructionOptions, type ReconstructionResult } from '../services/planReconstruction';
+import {
+  DEFAULT_RECONSTRUCTION_OPTIONS,
+  getReconstructionService,
+  type ReconstructionOptions,
+  type ReconstructionResult,
+} from '../services/planReconstruction';
 import { confirmDialog } from '../store/dialogStore';
 import { toast } from '../store/toastStore';
 
@@ -27,7 +32,9 @@ function Stepper({ step }: { step: number }) {
             i < step ? 'bg-green-100 text-green-800' : i === step ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500'
           }`}
         >
-          <span className="flex size-5 items-center justify-center rounded-full bg-white/30">{i < step ? <Check className="size-3.5" aria-hidden /> : i + 1}</span>
+          <span className="flex size-5 items-center justify-center rounded-full bg-white/30">
+            {i < step ? <Check className="size-3.5" aria-hidden /> : i + 1}
+          </span>
           {s}
         </li>
       ))}
@@ -128,14 +135,16 @@ export default function SketchToPlanPage() {
         <p className="mb-4 flex items-start gap-2 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
           <Wand2 className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
-            <strong>Plan simplifié destiné à l’implantation électrique.</strong> La détection du croquis fonctionne sur l’appareil (aucune image envoyée) ; ce n’est pas un
-            plan d’architecte.
+            <strong>Plan simplifié destiné à l’implantation électrique.</strong> La détection du croquis fonctionne sur l’appareil (aucune image envoyée) ; ce
+            n’est pas un plan d’architecte.
           </span>
         </p>
 
         {!image && (
           <Card className="flex flex-col items-center gap-4 p-6 text-center">
-            <p className="text-gray-700">Photographiez une feuille sur laquelle vous avez dessiné les murs, les pièces et les portes (trait foncé, feuille bien éclairée).</p>
+            <p className="text-gray-700">
+              Photographiez une feuille sur laquelle vous avez dessiné les murs, les pièces et les portes (trait foncé, feuille bien éclairée).
+            </p>
             <div className="grid w-full max-w-md gap-2 sm:grid-cols-2">
               <Button variant="primary" icon={<Camera className="size-5" aria-hidden />} onClick={() => cameraRef.current?.click()}>
                 Prendre une photo
@@ -179,7 +188,8 @@ export default function SketchToPlanPage() {
                 <Card className="p-4">
                   <p className="text-sm font-bold text-gray-900">Plan proposé</p>
                   <p className="text-sm text-gray-600">
-                    {result.walls.length} mur(s) · {result.doors.length} ouverture(s) · détection {result.method === 'opencv' ? 'OpenCV.js' : result.method === 'local' ? 'simplifiée' : 'distante'}
+                    {result.walls.length} mur(s) · {result.doors.length} ouverture(s) · détection{' '}
+                    {result.method === 'opencv' ? 'OpenCV.js' : result.method === 'local' ? 'simplifiée' : 'distante'}
                   </p>
                   <p className="mt-2 text-xs text-gray-500">Plan simplifié généré automatiquement. Vérifiez les murs et ouvertures avant utilisation.</p>
                   {result.warnings.map((w) => (
@@ -201,7 +211,14 @@ export default function SketchToPlanPage() {
               )}
               <Card className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-bold text-gray-900">Réglages de la détection</p>
-                <Slider label="Sensibilité du trait" value={opts.sensitivity} min={3} max={30} onChange={(v) => setOpts((o) => ({ ...o, sensitivity: v }))} format={(v) => `${v}`} />
+                <Slider
+                  label="Sensibilité du trait"
+                  value={opts.sensitivity}
+                  min={3}
+                  max={30}
+                  onChange={(v) => setOpts((o) => ({ ...o, sensitivity: v }))}
+                  format={(v) => `${v}`}
+                />
                 <Slider
                   label="Longueur minimale d’un mur"
                   value={Math.round(opts.minWallRatio * 100)}
@@ -210,9 +227,19 @@ export default function SketchToPlanPage() {
                   onChange={(v) => setOpts((o) => ({ ...o, minWallRatio: v / 100 }))}
                   format={(v) => `${v} %`}
                 />
-                <Toggle label="Murs droits uniquement (0° / 90°)" checked={opts.orthogonalOnly} onChange={(v) => setOpts((o) => ({ ...o, orthogonalOnly: v }))} />
+                <Toggle
+                  label="Murs droits uniquement (0° / 90°)"
+                  checked={opts.orthogonalOnly}
+                  onChange={(v) => setOpts((o) => ({ ...o, orthogonalOnly: v }))}
+                />
                 <Toggle label="Détecter les ouvertures" checked={opts.detectOpenings} onChange={(v) => setOpts((o) => ({ ...o, detectOpenings: v }))} />
-                <Button variant={result ? 'secondary' : 'primary'} className="mt-2" icon={result ? <RefreshCw className="size-5" aria-hidden /> : <Wand2 className="size-5" aria-hidden />} onClick={() => void analyse()} disabled={Boolean(progress)}>
+                <Button
+                  variant={result ? 'secondary' : 'primary'}
+                  className="mt-2"
+                  icon={result ? <RefreshCw className="size-5" aria-hidden /> : <Wand2 className="size-5" aria-hidden />}
+                  onClick={() => void analyse()}
+                  disabled={Boolean(progress)}
+                >
                   {result ? 'Relancer la détection' : 'Lancer la reconstruction automatique'}
                 </Button>
                 <Button variant="ghost" icon={<Crop className="size-5" aria-hidden />} onClick={() => navigate(`${base}/scan?preset=sketch&next=sketch`)}>

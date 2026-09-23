@@ -27,7 +27,13 @@ const OPTIONS: Option[] = [
   { id: 'image', title: 'Importer une image', desc: 'JPG, JPEG, PNG ou WEBP.', icon: <FileImage className="size-7" aria-hidden /> },
   { id: 'pdf', title: 'Importer un PDF', desc: 'Choix de la page si le PDF en contient plusieurs.', icon: <FileText className="size-7" aria-hidden /> },
   { id: 'draw', title: 'Dessiner rapidement', desc: 'Plan vierge : tracez les murs en quelques gestes.', icon: <PenLine className="size-7" aria-hidden /> },
-  { id: 'sketch', title: 'Reconstruction depuis croquis', desc: 'Photo d’un croquis → plan simplifié vu de dessus.', icon: <Wand2 className="size-7" aria-hidden />, accent: true },
+  {
+    id: 'sketch',
+    title: 'Reconstruction depuis croquis',
+    desc: 'Photo d’un croquis → plan simplifié vu de dessus.',
+    icon: <Wand2 className="size-7" aria-hidden />,
+    accent: true,
+  },
 ];
 
 export default function ImportPlanPage() {
@@ -134,7 +140,11 @@ export default function ImportPlanPage() {
                 o.accent ? 'border-brand-300 bg-gradient-to-br from-brand-50 to-yellow-50' : 'border-gray-200 bg-white hover:border-brand-300'
               }`}
             >
-              <span className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${o.accent ? 'bg-brand-500 text-white' : 'bg-ink-900 text-volt-400'}`}>{o.icon}</span>
+              <span
+                className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${o.accent ? 'bg-brand-500 text-white' : 'bg-ink-900 text-volt-400'}`}
+              >
+                {o.icon}
+              </span>
               <span className="min-w-0">
                 <span className="block font-bold text-gray-900">{o.title}</span>
                 <span className="block text-sm text-gray-600">{o.desc}</span>
@@ -195,7 +205,14 @@ export default function ImportPlanPage() {
         </div>
       )}
 
-      <Sheet open={Boolean(pdf)} onClose={() => setPdf(null)} title={`Choisir la page (${pdf?.doc.numPages ?? 0})`} desktop="center" widthClass="max-w-3xl" mobileHeight="full">
+      <Sheet
+        open={Boolean(pdf)}
+        onClose={() => setPdf(null)}
+        title={`Choisir la page (${pdf?.doc.numPages ?? 0})`}
+        desktop="center"
+        widthClass="max-w-3xl"
+        mobileHeight="full"
+      >
         <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
           {pdf?.thumbs.map((t, i) => (
             <button
@@ -205,7 +222,11 @@ export default function ImportPlanPage() {
               className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 p-2 hover:border-brand-400"
             >
               <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-lg bg-gray-100">
-                {t ? <img src={t} alt={`Page ${i + 1}`} className="max-h-full max-w-full object-contain" /> : <Loader2 className="size-6 animate-spin text-gray-400" aria-hidden />}
+                {t ? (
+                  <img src={t} alt={`Page ${i + 1}`} className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <Loader2 className="size-6 animate-spin text-gray-400" aria-hidden />
+                )}
               </div>
               <span className="text-sm font-semibold">Page {i + 1}</span>
             </button>

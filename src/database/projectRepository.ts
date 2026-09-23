@@ -38,7 +38,7 @@ export async function createProject(input: NewProjectInput): Promise<{ project: 
     updatedAt: now,
     stats: { symbols: 0, sockets: 0, lights: 0, switches: 0, connections: 0 },
   };
-  await db.transaction('rw', [db.projects, db.plans, db.panels], async () => {
+  await db.transaction('rw', [db.projects, db.plans, db.panels, db.settings], async () => {
     await db.projects.add(project);
     await db.plans.add(plan);
     await createPanelForProject(projectId, project.name);

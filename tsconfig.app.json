@@ -3,18 +3,9 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": [
-      "vite/client",
-      "vite-plugin-pwa/react",
-      "vite-plugin-pwa/info",
-      "web-bluetooth"
-    ],
+    "types": ["vite/client", "vite-plugin-pwa/react", "vite-plugin-pwa/info", "web-bluetooth"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -29,11 +20,6 @@
     "noUncheckedSideEffectImports": true,
     "esModuleInterop": true
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/**/__tests__/*.ts"
-  ]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/__tests__/*.ts"]
 }

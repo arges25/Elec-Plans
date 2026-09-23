@@ -47,7 +47,11 @@ export interface EditorHeaderProps {
 
 function MenuItem({ icon, label, onClick, danger }: { icon: ReactNode; label: string; onClick: () => void; danger?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className={`flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left font-medium hover:bg-gray-100 ${danger ? 'text-red-600' : 'text-gray-800'}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left font-medium hover:bg-gray-100 ${danger ? 'text-red-600' : 'text-gray-800'}`}
+    >
       <span className={danger ? 'text-red-500' : 'text-gray-500'}>{icon}</span>
       {label}
     </button>
@@ -97,7 +101,12 @@ export function EditorHeader({ project, planId, desktop, correction, onSection, 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-bold leading-tight">{correction ? 'Correction du plan' : (project?.name ?? '…')}</p>
           <div className="flex min-w-0 items-center gap-1">
-            <button type="button" onClick={() => setFloors(true)} className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-gray-300 hover:text-white" aria-label="Changer de niveau">
+            <button
+              type="button"
+              onClick={() => setFloors(true)}
+              className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-gray-300 hover:text-white"
+              aria-label="Changer de niveau"
+            >
               <span className="truncate">{plan?.name ?? ''}</span>
               <ChevronDown className="size-3.5 shrink-0" aria-hidden />
             </button>
@@ -108,7 +117,9 @@ export function EditorHeader({ project, planId, desktop, correction, onSection, 
         {desktop && <SaveIndicator />}
         <IconButton tone="dark" label="Annuler" icon={<Undo2 className="size-5" aria-hidden />} onClick={() => st.undo()} disabled={!canUndo} />
         <IconButton tone="dark" label="Rétablir" icon={<Redo2 className="size-5" aria-hidden />} onClick={() => st.redo()} disabled={!canRedo} />
-        {!correction && wide && <IconButton tone="dark" label="Aperçu client" icon={<Eye className="size-5" aria-hidden />} onClick={() => st.setClientPreview(true)} />}
+        {!correction && wide && (
+          <IconButton tone="dark" label="Aperçu client" icon={<Eye className="size-5" aria-hidden />} onClick={() => st.setClientPreview(true)} />
+        )}
         <IconButton tone="dark" label="Plus d’actions" icon={<MoreVertical className="size-5" aria-hidden />} onClick={() => setMenu(true)} />
       </div>
 
@@ -138,7 +149,11 @@ export function EditorHeader({ project, planId, desktop, correction, onSection, 
               if (project) void exportProjectFile(project.id).then(() => toast.success('Projet exporté ✓'));
             })}
           />
-          <MenuItem icon={<Info className="size-5" />} label="Informations du chantier" onClick={run(() => project && navigate(`/project/${project.id}/info`))} />
+          <MenuItem
+            icon={<Info className="size-5" />}
+            label="Informations du chantier"
+            onClick={run(() => project && navigate(`/project/${project.id}/info`))}
+          />
           <MenuItem icon={<Settings className="size-5" />} label="Réglages de l’éditeur" onClick={run(() => navigate('/settings'))} />
         </div>
       </Sheet>
@@ -173,7 +188,12 @@ export function EditorHeader({ project, planId, desktop, correction, onSection, 
                   label={`Supprimer ${f.name}`}
                   icon={<Trash2 className="size-4 text-red-600" aria-hidden />}
                   onClick={async () => {
-                    const ok = await confirmDialog({ title: `Supprimer définitivement ${f.name} ?`, message: 'Le plan et ses symboles seront supprimés.', confirmLabel: 'Supprimer', danger: true });
+                    const ok = await confirmDialog({
+                      title: `Supprimer définitivement ${f.name} ?`,
+                      message: 'Le plan et ses symboles seront supprimés.',
+                      confirmLabel: 'Supprimer',
+                      danger: true,
+                    });
                     if (!ok) return;
                     await deleteFloor(project.id, f.planId);
                     const other = project.floors.find((x) => x.planId !== f.planId);
@@ -184,7 +204,11 @@ export function EditorHeader({ project, planId, desktop, correction, onSection, 
               )}
             </div>
           ))}
-          <button type="button" onClick={() => void newFloor()} className="mt-1 flex min-h-12 items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 font-semibold text-brand-600">
+          <button
+            type="button"
+            onClick={() => void newFloor()}
+            className="mt-1 flex min-h-12 items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 font-semibold text-brand-600"
+          >
             <Plus className="size-5" aria-hidden /> Ajouter un niveau
           </button>
         </div>

@@ -19,9 +19,16 @@ let counter = 0;
 
 export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
-  push: (toast, durationMs = 2800) => {
+  push: (toast, durationMs = 2400) => {
     const id = ++counter;
-    set({ toasts: [...get().toasts.slice(-3), { ...toast, id }] });
+    set({
+      toasts: [
+        ...get()
+          .toasts.filter((t) => t.message !== toast.message)
+          .slice(-1),
+        { ...toast, id },
+      ],
+    });
     if (durationMs > 0) setTimeout(() => get().dismiss(id), durationMs);
     return id;
   },

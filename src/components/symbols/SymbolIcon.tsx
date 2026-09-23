@@ -3,7 +3,17 @@ import { getSymbolDefinition } from '../../data/electricalSymbols';
 import { primitivesToSvgInner } from '../../data/symbolShapes';
 
 /** Vignette SVG d'un symbole de la bibliothèque. */
-export const SymbolIcon = memo(function SymbolIcon({ id, size = 40, color, className = '' }: { id: string; size?: number; color?: string; className?: string }) {
+export const SymbolIcon = memo(function SymbolIcon({
+  id,
+  size = 40,
+  color,
+  className = '',
+}: {
+  id: string;
+  size?: number;
+  color?: string;
+  className?: string;
+}) {
   const def = getSymbolDefinition(id);
   const inner = primitivesToSvgInner(def.shapes, color ?? def.color);
   return (

@@ -175,8 +175,15 @@ export default function ScannerPage() {
       <Slider label="Luminosité" value={filters.brightness} min={-100} max={100} onChange={(v) => setF('brightness', v)} />
       <Slider label="Contraste" value={filters.contrast} min={-100} max={100} onChange={(v) => setF('contrast', v)} />
       <Toggle label="Niveaux de gris" checked={filters.grayscale} onChange={(v) => setF('grayscale', v)} />
-      <Toggle label="Noir et blanc (effet scan)" description="Seuillage adaptatif : idéal pour les plans papier." checked={filters.blackWhite} onChange={(v) => setF('blackWhite', v)} />
-      {filters.blackWhite && <Slider label="Sensibilité noir et blanc" value={filters.threshold} min={2} max={30} onChange={(v) => setF('threshold', v)} format={(v) => `${v} %`} />}
+      <Toggle
+        label="Noir et blanc (effet scan)"
+        description="Seuillage adaptatif : idéal pour les plans papier."
+        checked={filters.blackWhite}
+        onChange={(v) => setF('blackWhite', v)}
+      />
+      {filters.blackWhite && (
+        <Slider label="Sensibilité noir et blanc" value={filters.threshold} min={2} max={30} onChange={(v) => setF('threshold', v)} format={(v) => `${v} %`} />
+      )}
     </div>
   );
 
@@ -202,17 +209,25 @@ export default function ScannerPage() {
       </div>
       {!isTablet && showAdjust && <div className="max-h-[40dvh] overflow-y-auto border-t border-gray-200 bg-white">{controls}</div>}
       <div className="border-t border-white/10 bg-ink-900 px-2 py-2 pb-safe">
-        <div className="no-scrollbar mx-auto flex max-w-4xl items-center gap-1 overflow-x-auto">
-          <IconButton tone="dark" label="Rotation 90° à gauche" icon={<RotateCcw className="size-5" aria-hidden />} onClick={() => rotate90(false)} />
-          <IconButton tone="dark" label="Rotation 90° à droite" icon={<RotateCw className="size-5" aria-hidden />} onClick={() => rotate90(true)} />
-          <IconButton tone="dark" label="Détecter les bords" icon={<ScanSearch className="size-5" aria-hidden />} onClick={() => void detectEdges()} />
-          <IconButton tone="dark" label="Amélioration automatique" icon={<Sparkles className="size-5" aria-hidden />} onClick={autoEnhance} />
-          {!isTablet && (
-            <IconButton tone="dark" label="Réglages image" active={showAdjust} icon={<SlidersHorizontal className="size-5" aria-hidden />} onClick={() => setShowAdjust((v) => !v)} />
-          )}
-          <div className="flex-1" />
-          <Button variant="primary" icon={<Check className="size-5" aria-hidden />} onClick={() => void apply()} disabled={!base} className="shrink-0 whitespace-nowrap">
-            Utiliser ce plan
+        <div className="mx-auto flex max-w-4xl flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="no-scrollbar flex items-center justify-around gap-1 overflow-x-auto sm:justify-start">
+            <IconButton tone="dark" label="Rotation 90° à gauche" icon={<RotateCcw className="size-5" aria-hidden />} onClick={() => rotate90(false)} />
+            <IconButton tone="dark" label="Rotation 90° à droite" icon={<RotateCw className="size-5" aria-hidden />} onClick={() => rotate90(true)} />
+            <IconButton tone="dark" label="Détecter les bords" icon={<ScanSearch className="size-5" aria-hidden />} onClick={() => void detectEdges()} />
+            <IconButton tone="dark" label="Amélioration automatique" icon={<Sparkles className="size-5" aria-hidden />} onClick={autoEnhance} />
+            {!isTablet && (
+              <IconButton
+                tone="dark"
+                label="Réglages image"
+                active={showAdjust}
+                icon={<SlidersHorizontal className="size-5" aria-hidden />}
+                onClick={() => setShowAdjust((v) => !v)}
+              />
+            )}
+          </div>
+          <div className="hidden flex-1 sm:block" />
+          <Button variant="primary" icon={<Check className="size-5" aria-hidden />} onClick={() => void apply()} disabled={!base} className="w-full whitespace-nowrap sm:w-auto">
+            UTILISER CE PLAN
           </Button>
         </div>
       </div>

@@ -67,7 +67,17 @@ export function DraftPreview({ draft, zoom, wallThickness }: { draft: Draft | nu
         />
       );
     case 'arrow':
-      return <Arrow listening={false} points={[draft.start.x, draft.start.y, draft.end.x, draft.end.y]} stroke={ORANGE} fill={ORANGE} strokeWidth={sw} pointerLength={10 / zoom} pointerWidth={8 / zoom} />;
+      return (
+        <Arrow
+          listening={false}
+          points={[draft.start.x, draft.start.y, draft.end.x, draft.end.y]}
+          stroke={ORANGE}
+          fill={ORANGE}
+          strokeWidth={sw}
+          pointerLength={10 / zoom}
+          pointerWidth={8 / zoom}
+        />
+      );
     case 'pen':
       return <Line listening={false} points={draft.points} stroke={ORANGE} strokeWidth={sw * 1.5} tension={0.4} lineCap="round" />;
     case 'measure':
@@ -75,9 +85,21 @@ export function DraftPreview({ draft, zoom, wallThickness }: { draft: Draft | nu
       const c = draft.cursor ?? draft.start;
       return (
         <Group listening={false}>
-          <Line points={[draft.start.x, draft.start.y, c.x, c.y]} stroke={draft.kind === 'scale' ? '#7c3aed' : '#0f766e'} strokeWidth={sw} dash={[6 / zoom, 4 / zoom]} />
+          <Line
+            points={[draft.start.x, draft.start.y, c.x, c.y]}
+            stroke={draft.kind === 'scale' ? '#7c3aed' : '#0f766e'}
+            strokeWidth={sw}
+            dash={[6 / zoom, 4 / zoom]}
+          />
           <Circle x={draft.start.x} y={draft.start.y} radius={6 / zoom} fill={draft.kind === 'scale' ? '#7c3aed' : '#0f766e'} />
-          <Text x={draft.start.x + 10 / zoom} y={draft.start.y - 24 / zoom} text={draft.kind === 'scale' ? 'A' : ''} fontSize={16 / zoom} fontStyle="bold" fill="#7c3aed" />
+          <Text
+            x={draft.start.x + 10 / zoom}
+            y={draft.start.y - 24 / zoom}
+            text={draft.kind === 'scale' ? 'A' : ''}
+            fontSize={16 / zoom}
+            fontStyle="bold"
+            fill="#7c3aed"
+          />
         </Group>
       );
     }
@@ -90,7 +112,9 @@ export function Guides({ width, height, zoom }: { width: number; height: number;
   if (!guides) return null;
   return (
     <Group listening={false}>
-      {guides.x !== undefined && <Line points={[guides.x, -height, guides.x, height * 2]} stroke="#ec4899" strokeWidth={1 / zoom} dash={[6 / zoom, 4 / zoom]} />}
+      {guides.x !== undefined && (
+        <Line points={[guides.x, -height, guides.x, height * 2]} stroke="#ec4899" strokeWidth={1 / zoom} dash={[6 / zoom, 4 / zoom]} />
+      )}
       {guides.y !== undefined && <Line points={[-width, guides.y, width * 2, guides.y]} stroke="#ec4899" strokeWidth={1 / zoom} dash={[6 / zoom, 4 / zoom]} />}
     </Group>
   );
@@ -128,7 +152,11 @@ export function WallHandles({ wall, walls, zoom }: { wall: Wall; walls: Wall[]; 
           const settings = getSettings();
           let q = e.target.position();
           const excluded = new Set([wall.id, ...linked.current.map((l) => l.wallId)]);
-          const ep = nearestWallEndpoint(q, walls.filter((w) => !excluded.has(w.id)), 14 / zoom);
+          const ep = nearestWallEndpoint(
+            q,
+            walls.filter((w) => !excluded.has(w.id)),
+            14 / zoom,
+          );
           if (ep) {
             q = ep;
             hapticTick(settings.vibration);

@@ -85,7 +85,8 @@ export function layoutCalibrationSheet(tpl: PanelTemplate, measure: MeasureFn): 
   // Trait vertical de 50 mm
   const vx = x0 + 125;
   out.push({ t: 'line', x1: vx, y1: 22, x2: vx, y2: 72, stroke: '#111827', sw: 0.3 });
-  for (let mm = 0; mm <= 50; mm += 5) out.push({ t: 'line', x1: vx, y1: 22 + mm, x2: vx + (mm % 10 === 0 ? 4 : 2.5), y2: 22 + mm, stroke: '#111827', sw: 0.15 });
+  for (let mm = 0; mm <= 50; mm += 5)
+    out.push({ t: 'line', x1: vx, y1: 22 + mm, x2: vx + (mm % 10 === 0 ? 4 : 2.5), y2: 22 + mm, stroke: '#111827', sw: 0.15 });
   out.push({ t: 'text', x: vx + 6, y: 48, text: '50 mm (vertical)', sizeMm: 2.8, anchor: 'start', fill: '#c2410c' });
   // 13 cases du modèle
   const n = tpl.modulesPerRow;
@@ -101,7 +102,15 @@ export function layoutCalibrationSheet(tpl: PanelTemplate, measure: MeasureFn): 
   }));
   const strip: LabelStrip = { rowId: 'test', rowName: 'Test', cells, usedModules: n, overflow: 0 };
   const sy = 80;
-  out.push({ t: 'text', x: x0, y: sy - 2, text: `${tpl.name} — ${n} × ${tpl.modulePitchMm} mm = ${tpl.rowWidthMm} mm`, sizeMm: 2.8, anchor: 'start', fill: '#374151' });
+  out.push({
+    t: 'text',
+    x: x0,
+    y: sy - 2,
+    text: `${tpl.name} — ${n} × ${tpl.modulePitchMm} mm = ${tpl.rowWidthMm} mm`,
+    sizeMm: 2.8,
+    anchor: 'start',
+    fill: '#374151',
+  });
   out.push(...layoutStrip(strip, { ...tpl, showIcon: false }, measure, x0, sy));
   const size = stripSizeMm(tpl);
   return { prims: out, width: Math.max(x0 + size.width + 10, 180), height: sy + size.height + 10 };

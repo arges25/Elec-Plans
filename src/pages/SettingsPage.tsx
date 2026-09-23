@@ -119,33 +119,80 @@ export default function SettingsPage() {
           <div className="py-2">
             <InstallPrompt force />
           </div>
-          <LinkRow icon={<Smartphone className="size-5" />} label="Revoir le tour guidé" onClick={() => {
+          <LinkRow
+            icon={<Smartphone className="size-5" />}
+            label="Revoir le tour guidé"
+            onClick={() => {
               update({ onboardingDone: false });
               navigate('/');
-            }} />
-          <Toggle label="Afficher l’aide d’installation" description="Bandeau « Installer MG Elec & Plans » sur l’accueil" checked={!s.installHintDismissed} onChange={(v) => update({ installHintDismissed: !v })} />
+            }}
+          />
+          <Toggle
+            label="Afficher l’aide d’installation"
+            description="Bandeau « Installer MG Elec & Plans » sur l’accueil"
+            checked={!s.installHintDismissed}
+            onChange={(v) => update({ installHintDismissed: !v })}
+          />
         </Card>
 
         <SectionTitle>Éditeur</SectionTitle>
         <Card className="divide-y divide-gray-100 px-4">
-          <Toggle label="Aimantation aux murs" description="Prises, interrupteurs… s’orientent automatiquement" checked={s.snapEnabled} onChange={(v) => update({ snapEnabled: v })} />
-          <Slider label="Distance d’aimantation" value={s.snapDistance} min={5} max={40} onChange={(v) => update({ snapDistance: v })} format={(v) => `${v} px`} />
+          <Toggle
+            label="Aimantation aux murs"
+            description="Prises, interrupteurs… s’orientent automatiquement"
+            checked={s.snapEnabled}
+            onChange={(v) => update({ snapEnabled: v })}
+          />
+          <Slider
+            label="Distance d’aimantation"
+            value={s.snapDistance}
+            min={5}
+            max={40}
+            onChange={(v) => update({ snapDistance: v })}
+            format={(v) => `${v} px`}
+          />
           <Toggle label="Grille" checked={s.gridEnabled} onChange={(v) => update({ gridEnabled: v })} />
           <Slider label="Taille de la grille" value={s.gridSize} min={10} max={100} step={5} onChange={(v) => update({ gridSize: v })} format={(v) => `${v}`} />
           <Toggle label="Afficher les repères d’alignement" checked={s.showGuides} onChange={(v) => update({ showGuides: v })} />
-          <Toggle label="Mode répétition par défaut" description="L’outil reste actif après chaque placement" checked={s.repeatMode} onChange={(v) => update({ repeatMode: v })} />
+          <Toggle
+            label="Mode répétition par défaut"
+            description="L’outil reste actif après chaque placement"
+            checked={s.repeatMode}
+            onChange={(v) => update({ repeatMode: v })}
+          />
           <Toggle label="Vibration (si disponible)" checked={s.vibration} onChange={(v) => update({ vibration: v })} />
           <Toggle label="Afficher « Commande N » sur les liaisons" checked={s.showCommandNumbers} onChange={(v) => update({ showCommandNumbers: v })} />
           <ColorRow label="Couleur liaison commande" value={s.commandColor} onChange={(c) => update({ commandColor: c })} />
           <ColorRow label="Couleur liaison circuit" value={s.circuitColor} onChange={(c) => update({ circuitColor: c })} />
           <ColorRow label="Couleur liaison information" value={s.informationColor} onChange={(c) => update({ informationColor: c })} />
-          <Slider label="Épaisseur des lignes" value={s.lineWidth} min={1} max={6} step={0.5} onChange={(v) => update({ lineWidth: v })} format={(v) => `${v}`} />
+          <Slider
+            label="Épaisseur des lignes"
+            value={s.lineWidth}
+            min={1}
+            max={6}
+            step={0.5}
+            onChange={(v) => update({ lineWidth: v })}
+            format={(v) => `${v}`}
+          />
         </Card>
 
         <SectionTitle>Symboles</SectionTitle>
         <Card className="divide-y divide-gray-100 px-4">
-          <Slider label="Taille par défaut des symboles" value={s.defaultSymbolScale} min={0.5} max={2} step={0.05} onChange={(v) => update({ defaultSymbolScale: v })} format={(v) => `${Math.round(v * 100)} %`} />
-          <LinkRow icon={<Shapes className="size-5" />} label="Bibliothèque et favoris" desc={`${s.favorites.length} favori(s)`} onClick={() => navigate('/library')} />
+          <Slider
+            label="Taille par défaut des symboles"
+            value={s.defaultSymbolScale}
+            min={0.5}
+            max={2}
+            step={0.05}
+            onChange={(v) => update({ defaultSymbolScale: v })}
+            format={(v) => `${Math.round(v * 100)} %`}
+          />
+          <LinkRow
+            icon={<Shapes className="size-5" />}
+            label="Bibliothèque et favoris"
+            desc={`${s.favorites.length} favori(s)`}
+            onClick={() => navigate('/library')}
+          />
           <div className="flex gap-2 py-3">
             <Button size="sm" icon={<RotateCcw className="size-4" aria-hidden />} onClick={() => update({ favorites: DEFAULT_SETTINGS.favorites })}>
               Favoris par défaut
@@ -159,9 +206,19 @@ export default function SettingsPage() {
         <SectionTitle>Étiquettes</SectionTitle>
         <Card className="divide-y divide-gray-100 px-4">
           <div className="py-3">
-            <SelectField label="Modèle par défaut" value={s.defaultTemplateId} onValueChange={(v) => update({ defaultTemplateId: v })} options={templates.map((t) => ({ value: t.id, label: t.name }))} />
+            <SelectField
+              label="Modèle par défaut"
+              value={s.defaultTemplateId}
+              onValueChange={(v) => update({ defaultTemplateId: v })}
+              options={templates.map((t) => ({ value: t.id, label: t.name }))}
+            />
           </div>
-          <LinkRow icon={<SlidersHorizontal className="size-5" />} label="Modèles et dimensions" desc="Legrand · Schneider · Hager · personnalisés" onClick={() => navigate('/templates')} />
+          <LinkRow
+            icon={<SlidersHorizontal className="size-5" />}
+            label="Modèles et dimensions"
+            desc="Legrand · Schneider · Hager · personnalisés"
+            onClick={() => navigate('/templates')}
+          />
         </Card>
 
         <SectionTitle>Impression</SectionTitle>
@@ -183,7 +240,8 @@ export default function SettingsPage() {
             </Button>
           </div>
           <p className="py-3 text-sm text-gray-600">
-            Service distant (IA) : <strong>{isRemoteReconstructionConfigured() ? 'configuré' : 'non configuré — désactivé'}</strong>. Aucune image n’est envoyée.
+            Service distant (IA) : <strong>{isRemoteReconstructionConfigured() ? 'configuré' : 'non configuré — désactivé'}</strong>. Aucune image n’est
+            envoyée.
           </p>
         </Card>
 
@@ -243,7 +301,12 @@ export default function SettingsPage() {
 
         <SectionTitle>Informations</SectionTitle>
         <Card className="px-4">
-          <LinkRow icon={<Info className="size-5" />} label="À propos de MG Elec & Plans" desc={`Version ${__APP_VERSION__} · Vos projets sont stockés localement sur cet appareil.`} onClick={() => navigate('/about')} />
+          <LinkRow
+            icon={<Info className="size-5" />}
+            label="À propos de MG Elec & Plans"
+            desc={`Version ${__APP_VERSION__} · Vos projets sont stockés localement sur cet appareil.`}
+            onClick={() => navigate('/about')}
+          />
         </Card>
       </PageBody>
     </div>

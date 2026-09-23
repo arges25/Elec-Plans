@@ -139,12 +139,18 @@ function drawHeader(ctx: Ctx, project: Project, plan: Plan, o: PlanPdfOptions, f
 
 function drawFooter(ctx: Ctx, fonts: Fonts, box: Box, n: number, total: number) {
   drawLine(ctx, box.x, box.y, box.x + box.w, box.y, LIGHT_GRAY, 0.6);
-  drawText(ctx, 'MG Elec & Plans — Plan simplifié destiné à l’implantation électrique. Document indicatif : validation par l’électricien.', box.x, box.y + mmToPt(4.5), {
-    font: fonts.regular,
-    size: 7,
-    color: GRAY,
-    maxWidth: box.w - mmToPt(20),
-  });
+  drawText(
+    ctx,
+    'MG Elec & Plans — Plan simplifié destiné à l’implantation électrique. Document indicatif : validation par l’électricien.',
+    box.x,
+    box.y + mmToPt(4.5),
+    {
+      font: fonts.regular,
+      size: 7,
+      color: GRAY,
+      maxWidth: box.w - mmToPt(20),
+    },
+  );
   drawText(ctx, `${n} / ${total}`, box.x + box.w, box.y + mmToPt(4.5), { font: fonts.regular, size: 7, color: GRAY, align: 'right' });
 }
 
@@ -222,14 +228,16 @@ async function drawPlan(pdf: PDFDocument, ctx: Ctx, plan: Plan, doc: PlanDocumen
       const f = openingFrame(w, win.t, win.width);
       drawLine(ctx, X(f.a.x), Y(f.a.y), X(f.b.x), Y(f.b.y), WHITE, w.thickness * k);
       const off = w.thickness / 4;
-      for (const s of [off, -off]) drawLine(ctx, X(f.a.x + f.n.x * s), Y(f.a.y + f.n.y * s), X(f.b.x + f.n.x * s), Y(f.b.y + f.n.y * s), winColor, Math.max(0.4, 1.6 * k));
+      for (const s of [off, -off])
+        drawLine(ctx, X(f.a.x + f.n.x * s), Y(f.a.y + f.n.y * s), X(f.b.x + f.n.x * s), Y(f.b.y + f.n.y * s), winColor, Math.max(0.4, 1.6 * k));
     }
-    const roomSize = Math.max(6, Math.min(14, Math.max(plan.width, plan.height) / 80 * 1.1 * k));
+    const roomSize = Math.max(6, Math.min(14, (Math.max(plan.width, plan.height) / 80) * 1.1 * k));
     for (const r of doc.rooms) drawText(ctx, r.name, X(r.x), Y(r.y) + roomSize * 0.35, { font: fonts.bold, size: roomSize, color: GRAY, align: 'center' });
   }
 
   if (o.showConnections) {
     const byId = new Map(doc.symbols.map((s) => [s.id, s]));
+    const labelledGroups = new Set<number>();
     for (const c of doc.connections) {
       const s = byId.get(c.sourceId);
       const t = byId.get(c.targetId);
@@ -243,12 +251,21 @@ async function drawPlan(pdf: PDFDocument, ctx: Ctx, plan: Plan, doc: PlanDocumen
       };
       const width = Math.max(0.6, c.width * k * 1.2);
       drawPath(ctx, bezierToSvgPath(pc), { stroke: hexToRgb(c.color), width, dash: dashPattern(c.dash, width), cap: 'round' });
-      if (c.type === 'command' && c.showLabel && c.group !== undefined) {
+      if (c.type === 'command' && c.showLabel && c.group !== undefined && !labelledGroups.has(c.group)) {
+        labelledGroups.add(c.group);
         const mid = bezierPoint(pc, 0.5);
         const label = `Commande ${c.group}`;
         const fs = 5.5;
         const tw = fonts.bold.widthOfTextAtSize(label, fs) + 4;
-        ctx.page.drawRectangle({ x: mid.x - tw / 2, y: ctx.H - mid.y - 4.5, width: tw, height: 9, color: WHITE, borderColor: hexToRgb(c.color), borderWidth: 0.5 });
+        ctx.page.drawRectangle({
+          x: mid.x - tw / 2,
+          y: ctx.H - mid.y - 4.5,
+          width: tw,
+          height: 9,
+          color: WHITE,
+          borderColor: hexToRgb(c.color),
+          borderWidth: 0.5,
+        });
         drawText(ctx, label, mid.x, mid.y + 2, { font: fonts.bold, size: fs, color: hexToRgb(c.color), align: 'center' });
       }
     }
@@ -261,7 +278,12 @@ async function drawPlan(pdf: PDFDocument, ctx: Ctx, plan: Plan, doc: PlanDocumen
     drawSymbolPrimitives(ctx, def.shapes, color, X(s.x), Y(s.y), s.rotation, unit, fonts);
     if (s.properties.label) {
       const size = symbolWorldSize(def, s.scale) * k;
-      drawText(ctx, s.properties.label, X(s.x), Y(s.y) + size * 0.52 + Math.max(4, size * 0.32), { font: fonts.bold, size: Math.max(4, size * 0.32), color: hexToRgb(color), align: 'center' });
+      drawText(ctx, s.properties.label, X(s.x), Y(s.y) + size * 0.52 + Math.max(4, size * 0.32), {
+        font: fonts.bold,
+        size: Math.max(4, size * 0.32),
+        color: hexToRgb(color),
+        align: 'center',
+      });
     }
   }
 
@@ -297,7 +319,9 @@ async function drawPlan(pdf: PDFDocument, ctx: Ctx, plan: Plan, doc: PlanDocumen
           const Wd = sw * 2;
           const bx = x2 - Math.cos(ang) * L;
           const by = y2 - Math.sin(ang) * L;
-          drawPath(ctx, `M${x2} ${y2}L${bx - Math.sin(ang) * Wd} ${by + Math.cos(ang) * Wd}L${bx + Math.sin(ang) * Wd} ${by - Math.cos(ang) * Wd}Z`, { fill: col });
+          drawPath(ctx, `M${x2} ${y2}L${bx - Math.sin(ang) * Wd} ${by + Math.cos(ang) * Wd}L${bx + Math.sin(ang) * Wd} ${by - Math.cos(ang) * Wd}Z`, {
+            fill: col,
+          });
         }
       }
     }
@@ -344,7 +368,12 @@ function drawLegendBlock(ctx: Ctx, doc: PlanDocument, legend: ReturnType<typeof 
     if (doc.connections.some((c) => c.type === 'information')) types.push(['#6b7280', 'dot', 'Information']);
     for (const [color, dash, label] of types) {
       if (y + mmToPt(4) > box.y + box.h - pad) break;
-      drawPath(ctx, `M${box.x + pad} ${y + 3} L${box.x + pad + icon} ${y + 3}`, { stroke: hexToRgb(color), width: 1.2, dash: dashPattern(dash as 'dash', 1.2), cap: 'round' });
+      drawPath(ctx, `M${box.x + pad} ${y + 3} L${box.x + pad + icon} ${y + 3}`, {
+        stroke: hexToRgb(color),
+        width: 1.2,
+        dash: dashPattern(dash as 'dash', 1.2),
+        cap: 'round',
+      });
       drawText(ctx, label, box.x + pad + icon + mmToPt(2), y + 5, { font: fonts.regular, size: 7 });
       y += mmToPt(4.5);
     }

@@ -7,6 +7,7 @@ import type { LibraryFilterId } from '../data/electricalSymbols';
 import { db } from '../database/db';
 import { getPlan, loadPlanDocument } from '../database/planRepository';
 import { useEditorStore, type RightPanel } from '../store/editorStore';
+import { useViewStore } from '../store/viewStore';
 import { useIsDesktop } from '../hooks/useMediaQuery';
 import { useAutosave } from '../hooks/useAutosave';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -101,7 +102,13 @@ function EditorContent() {
   }, [ready]);
 
   useAutosave(ready);
-  useKeyboardShortcuts(ready && !clientPreview);
+  // L'aperçu client occupe tout l'écran : recadrage automatique du plan
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => useViewStore.getState().api?.fit(), 60);
+    return () => clearTimeout(t);
+  }, [clientPreview, ready]);
+  useKeyboardShortcuts(ready);
 
   const onSection = (s: ProjectSection): boolean => {
     const store = useEditorStore.getState();
@@ -160,11 +167,17 @@ function EditorContent() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-gray-100">
-      {!clientPreview && <EditorHeader project={project} planId={planId} desktop={desktop} correction={correction} onSection={onSection} onOpenPanel={openPanel} />}
-      {!desktop && !clientPreview && !correction && <EditorToolbar orientation="horizontal" onLayers={() => openPanel('layers')} onLegend={() => openPanel('legend')} />}
+      {!clientPreview && (
+        <EditorHeader project={project} planId={planId} desktop={desktop} correction={correction} onSection={onSection} onOpenPanel={openPanel} />
+      )}
+      {!desktop && !clientPreview && !correction && (
+        <EditorToolbar orientation="horizontal" onLayers={() => openPanel('layers')} onLegend={() => openPanel('legend')} />
+      )}
 
       <div className="relative flex min-h-0 flex-1">
-        {desktop && !clientPreview && !correction && <EditorToolbar orientation="vertical" onLayers={() => openPanel('layers')} onLegend={() => openPanel('legend')} />}
+        {desktop && !clientPreview && !correction && (
+          <EditorToolbar orientation="vertical" onLayers={() => openPanel('layers')} onLegend={() => openPanel('legend')} />
+        )}
 
         <div className="relative min-w-0 flex-1">
           <PlanStage />
@@ -236,7 +249,16 @@ function EditorContent() {
       {!desktop && (
         <>
           <Sheet open={sheet === 'library'} onClose={() => st.openSheet(null)} title="Bibliothèque électrique" mobileHeight="full">
-            <SymbolLibrary key={libFilter} initialFilter={libFilter} onPick={pick} onSecondary={(d) => { addSymbolAtCenter(d.id); st.openSheet(null); }} secondaryLabel="Ajouter au centre" />
+            <SymbolLibrary
+              key={libFilter}
+              initialFilter={libFilter}
+              onPick={pick}
+              onSecondary={(d) => {
+                addSymbolAtCenter(d.id);
+                st.openSheet(null);
+              }}
+              secondaryLabel="Ajouter au centre"
+            />
           </Sheet>
           <Sheet open={sheet === 'properties'} onClose={() => st.openSheet(null)} title="Propriétés" modeless>
             {propertiesContent}

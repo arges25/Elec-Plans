@@ -81,8 +81,19 @@ export default function PrintCalibrationPage() {
       <AppHeader title="Calibrer mon imprimante" back />
       <PageBody className="max-w-4xl">
         <Card className="grid gap-3 p-4 sm:grid-cols-2">
-          <SelectField label="Imprimante" value={printerId} onValueChange={setPrinterId} options={printers.map((p) => ({ value: p.id, label: p.name }))} hint={calibrationSummary(cal)} />
-          <SelectField label="Modèle pour les 13 cases" value={template.id} onValueChange={setTemplateId} options={templates.map((t) => ({ value: t.id, label: t.name }))} />
+          <SelectField
+            label="Imprimante"
+            value={printerId}
+            onValueChange={setPrinterId}
+            options={printers.map((p) => ({ value: p.id, label: p.name }))}
+            hint={calibrationSummary(cal)}
+          />
+          <SelectField
+            label="Modèle pour les 13 cases"
+            value={template.id}
+            onValueChange={setTemplateId}
+            options={templates.map((t) => ({ value: t.id, label: t.name }))}
+          />
           <Button
             size="sm"
             variant="ghost"
@@ -102,9 +113,15 @@ export default function PrintCalibrationPage() {
         <SectionTitle>1. Imprimer la bande test</SectionTitle>
         <Card className="p-4">
           <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <svg viewBox={`0 0 ${sheet.width} ${sheet.height}`} className="block min-w-[560px]" dangerouslySetInnerHTML={{ __html: primsToSvgInner(sheet.prims) }} role="img" aria-label="Bande test : MG Elec & Plans, TEST 100 mm, règle et 13 cases" />
+            <svg
+              viewBox={`0 0 ${sheet.width} ${sheet.height}`}
+              className="block min-w-[560px]"
+              dangerouslySetInnerHTML={{ __html: primsToSvgInner(sheet.prims) }}
+              role="img"
+              aria-label="Bande test : MG Elec & Plans, TEST 100 mm, règle et 13 cases"
+            />
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button variant="primary" icon={<Printer className="size-5" aria-hidden />} onClick={() => printCalibrationSystem(template, cal)}>
               IMPRIMER UNE BANDE TEST
             </Button>
@@ -118,13 +135,29 @@ export default function PrintCalibrationPage() {
               PDF bande test
             </Button>
           </div>
-          <p className="mt-3 rounded-xl bg-yellow-50 p-3 text-sm font-semibold text-yellow-900">Lors de l’impression, désactivez l’option « Ajuster à la page » (échelle 100 %).</p>
+          <p className="mt-3 rounded-xl bg-yellow-50 p-3 text-sm font-semibold text-yellow-900">
+            Lors de l’impression, désactivez l’option « Ajuster à la page » (échelle 100 %).
+          </p>
         </Card>
 
         <SectionTitle>2. Mesurer</SectionTitle>
         <Card className="grid gap-3 p-4 sm:grid-cols-2">
-          <TextField label="Quelle longueur mesurez-vous réellement ? (trait 100 mm)" suffix="mm" inputMode="decimal" placeholder="98,7" value={measuredX} onValueChange={setMeasuredX} />
-          <TextField label="Trait vertical 50 mm (facultatif)" suffix="mm" inputMode="decimal" placeholder="50" value={measuredY} onValueChange={setMeasuredY} />
+          <TextField
+            label="Quelle longueur mesurez-vous réellement ? (trait 100 mm)"
+            suffix="mm"
+            inputMode="decimal"
+            placeholder="98,7"
+            value={measuredX}
+            onValueChange={setMeasuredX}
+          />
+          <TextField
+            label="Trait vertical 50 mm (facultatif)"
+            suffix="mm"
+            inputMode="decimal"
+            placeholder="50"
+            value={measuredY}
+            onValueChange={setMeasuredY}
+          />
           <Button variant="dark" className="sm:col-span-2" onClick={applyMeasures}>
             Calculer la correction
           </Button>
@@ -132,8 +165,20 @@ export default function PrintCalibrationPage() {
 
         <SectionTitle>3. Réglage fin</SectionTitle>
         <Card className="grid gap-3 p-4 sm:grid-cols-2">
-          <NumberField label="Scale X" value={cal.scaleX} step={0.001} onNumberChange={(v) => setCal({ scaleX: v })} hint={`${((cal.scaleX - 1) * 100).toFixed(2)} %`} />
-          <NumberField label="Scale Y" value={cal.scaleY} step={0.001} onNumberChange={(v) => setCal({ scaleY: v })} hint={`${((cal.scaleY - 1) * 100).toFixed(2)} %`} />
+          <NumberField
+            label="Scale X"
+            value={cal.scaleX}
+            step={0.001}
+            onNumberChange={(v) => setCal({ scaleX: v })}
+            hint={`${((cal.scaleX - 1) * 100).toFixed(2)} %`}
+          />
+          <NumberField
+            label="Scale Y"
+            value={cal.scaleY}
+            step={0.001}
+            onNumberChange={(v) => setCal({ scaleY: v })}
+            hint={`${((cal.scaleY - 1) * 100).toFixed(2)} %`}
+          />
           <NumberField label="Offset X" suffix="mm" value={cal.offsetXMm} step={0.1} onNumberChange={(v) => setCal({ offsetXMm: v })} />
           <NumberField label="Offset Y" suffix="mm" value={cal.offsetYMm} step={0.1} onNumberChange={(v) => setCal({ offsetYMm: v })} />
         </Card>

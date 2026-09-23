@@ -85,10 +85,7 @@ export function multiSocket(count: 2 | 3 | 4): SymbolPrimitive[] {
 
 /** Prise de communication : cadre contre le mur + texte. */
 export function commOutlet(label: string, sub?: string): SymbolPrimitive[] {
-  const shapes: SymbolPrimitive[] = [
-    p(`M-13 ${WALL_BACK}L0 ${WALL_BACK + 14}L13 ${WALL_BACK}Z`, 'white'),
-    t(label, 0, 5, label.length > 3 ? 6.5 : 7.5),
-  ];
+  const shapes: SymbolPrimitive[] = [p(`M-13 ${WALL_BACK}L0 ${WALL_BACK + 14}L13 ${WALL_BACK}Z`, 'white'), t(label, 0, 5, label.length > 3 ? 6.5 : 7.5)];
   if (sub) shapes.push(t(sub, 0, 13, 6));
   return shapes;
 }
@@ -175,7 +172,11 @@ export function clockGlyph(cx = 0, cy = 0, r = 10): SymbolPrimitive[] {
 /** Point lumineux : cercle barré d'une croix. */
 export function lightGlyph(cx = 0, cy = 0, r = 10, fill: PrimitiveFill = 'white'): SymbolPrimitive[] {
   const k = r * 0.7071;
-  return [c(cx, cy, r, fill), line(round(cx - k), round(cy - k), round(cx + k), round(cy + k)), line(round(cx - k), round(cy + k), round(cx + k), round(cy - k))];
+  return [
+    c(cx, cy, r, fill),
+    line(round(cx - k), round(cy - k), round(cx + k), round(cy + k)),
+    line(round(cx - k), round(cy + k), round(cx + k), round(cy - k)),
+  ];
 }
 
 export function spotGlyph(cx = 0, cy = 0, r = 6): SymbolPrimitive[] {
@@ -260,12 +261,7 @@ export function bellGlyph(cx = 0, cy = -3): SymbolPrimitive[] {
 }
 
 export function cameraGlyph(): SymbolPrimitive[] {
-  return [
-    line(0, WALL_BACK, 0, -10),
-    rect(-11, -10, 16, 11, 'white'),
-    p('M5 -7L12 -10V1L5 -2Z', 'white'),
-    dot(-3, -4.5, 2),
-  ];
+  return [line(0, WALL_BACK, 0, -10), rect(-11, -10, 16, 11, 'white'), p('M5 -7L12 -10V1L5 -2Z', 'white'), dot(-3, -4.5, 2)];
 }
 
 export function motionGlyph(): SymbolPrimitive[] {

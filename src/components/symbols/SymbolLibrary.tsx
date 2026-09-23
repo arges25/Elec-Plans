@@ -52,7 +52,12 @@ export function SymbolLibrary({ onPick, onSecondary, secondaryLabel, initialFilt
             className="min-h-11 w-full rounded-xl border border-gray-300 bg-gray-50 pl-10 pr-10 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-200"
           />
           {query && (
-            <button type="button" aria-label="Effacer la recherche" onClick={() => setQuery('')} className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500">
+            <button
+              type="button"
+              aria-label="Effacer la recherche"
+              onClick={() => setQuery('')}
+              className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500"
+            >
               <X className="size-4" aria-hidden />
             </button>
           )}
@@ -83,7 +88,19 @@ export function SymbolLibrary({ onPick, onSecondary, secondaryLabel, initialFilt
               {favorites.map((id) => {
                 const def = getSymbolDefinition(id);
                 if (def.id === 'inconnu') return null;
-                return <SymbolCard key={`fav-${id}`} def={def} fav onPick={onPick} onFav={toggleFavorite} onSecondary={onSecondary} secondaryLabel={secondaryLabel} selected={selectedId === id} compact={compact} />;
+                return (
+                  <SymbolCard
+                    key={`fav-${id}`}
+                    def={def}
+                    fav
+                    onPick={onPick}
+                    onFav={toggleFavorite}
+                    onSecondary={onSecondary}
+                    secondaryLabel={secondaryLabel}
+                    selected={selectedId === id}
+                    compact={compact}
+                  />
+                );
               })}
             </Grid>
           </Section>
@@ -94,18 +111,50 @@ export function SymbolLibrary({ onPick, onSecondary, secondaryLabel, initialFilt
               {recent.slice(0, compact ? 6 : 8).map((id) => {
                 const def = getSymbolDefinition(id);
                 if (def.id === 'inconnu') return null;
-                return <SymbolCard key={`rec-${id}`} def={def} fav={favorites.includes(id)} onPick={onPick} onFav={toggleFavorite} onSecondary={onSecondary} secondaryLabel={secondaryLabel} selected={selectedId === id} compact={compact} />;
+                return (
+                  <SymbolCard
+                    key={`rec-${id}`}
+                    def={def}
+                    fav={favorites.includes(id)}
+                    onPick={onPick}
+                    onFav={toggleFavorite}
+                    onSecondary={onSecondary}
+                    secondaryLabel={secondaryLabel}
+                    selected={selectedId === id}
+                    compact={compact}
+                  />
+                );
               })}
             </Grid>
           </Section>
         )}
-        <Section title={query ? `${list.length} résultat(s)` : filter === 'all' ? `Tous les symboles (${list.length})` : `${LIBRARY_FILTERS.find((f) => f.id === filter)?.label} (${list.length})`}>
+        <Section
+          title={
+            query
+              ? `${list.length} résultat(s)`
+              : filter === 'all'
+                ? `Tous les symboles (${list.length})`
+                : `${LIBRARY_FILTERS.find((f) => f.id === filter)?.label} (${list.length})`
+          }
+        >
           {list.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-500">{filter === 'favorites' ? 'Aucun favori : touchez ★ sur un symbole.' : 'Aucun symbole trouvé.'}</p>
+            <p className="py-8 text-center text-sm text-gray-500">
+              {filter === 'favorites' ? 'Aucun favori : touchez ★ sur un symbole.' : 'Aucun symbole trouvé.'}
+            </p>
           ) : (
             <Grid compact={compact}>
               {list.map((def) => (
-                <SymbolCard key={def.id} def={def} fav={favorites.includes(def.id)} onPick={onPick} onFav={toggleFavorite} onSecondary={onSecondary} secondaryLabel={secondaryLabel} selected={selectedId === def.id} compact={compact} />
+                <SymbolCard
+                  key={def.id}
+                  def={def}
+                  fav={favorites.includes(def.id)}
+                  onPick={onPick}
+                  onFav={toggleFavorite}
+                  onSecondary={onSecondary}
+                  secondaryLabel={secondaryLabel}
+                  selected={selectedId === def.id}
+                  compact={compact}
+                />
               ))}
             </Grid>
           )}
@@ -148,8 +197,15 @@ const SymbolCard = memo(function SymbolCard({
   compact?: boolean;
 }) {
   return (
-    <div className={`relative flex flex-col rounded-xl border bg-white transition ${selected ? 'border-brand-500 ring-2 ring-brand-200' : 'border-gray-200 hover:border-brand-300'}`}>
-      <button type="button" onClick={() => onPick(def)} className="flex min-h-24 flex-col items-center gap-1 px-1 pb-2 pt-3 text-center" aria-label={`${def.name} — ${categoryLabel(def.category)}`}>
+    <div
+      className={`relative flex flex-col rounded-xl border bg-white transition ${selected ? 'border-brand-500 ring-2 ring-brand-200' : 'border-gray-200 hover:border-brand-300'}`}
+    >
+      <button
+        type="button"
+        onClick={() => onPick(def)}
+        className="flex min-h-24 flex-col items-center gap-1 px-1 pb-2 pt-3 text-center"
+        aria-label={`${def.name} — ${categoryLabel(def.category)}`}
+      >
         <SymbolIcon id={def.id} size={compact ? 38 : 44} />
         <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-gray-800">{def.name}</span>
       </button>
@@ -163,7 +219,11 @@ const SymbolCard = memo(function SymbolCard({
         <Star className={`size-4 ${fav ? 'fill-volt-400 text-volt-500' : 'text-gray-300'}`} aria-hidden />
       </button>
       {onSecondary && (
-        <button type="button" onClick={() => onSecondary(def)} className="min-h-9 border-t border-gray-100 text-xs font-semibold text-brand-600 hover:bg-brand-50">
+        <button
+          type="button"
+          onClick={() => onSecondary(def)}
+          className="min-h-9 border-t border-gray-100 text-xs font-semibold text-brand-600 hover:bg-brand-50"
+        >
           {secondaryLabel ?? 'Ajouter'}
         </button>
       )}

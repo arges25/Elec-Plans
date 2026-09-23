@@ -5,11 +5,7 @@ import { guessCircuitIcon } from '../data/labelIcons';
 import { createId } from '../utils/id';
 
 function norm(s: string): string {
-  return s
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+  return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
 export function nextCircuitNumber(circuits: ElectricalCircuit[]): string {

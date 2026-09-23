@@ -32,7 +32,12 @@ export function Toaster() {
               {t.action.label}
             </button>
           )}
-          <button type="button" aria-label="Fermer la notification" onClick={() => dismiss(t.id)} className="-mr-2 inline-flex size-9 items-center justify-center rounded-lg text-gray-300 hover:bg-white/10">
+          <button
+            type="button"
+            aria-label="Fermer la notification"
+            onClick={() => dismiss(t.id)}
+            className="-mr-2 inline-flex size-9 items-center justify-center rounded-lg text-gray-300 hover:bg-white/10"
+          >
             <X className="size-4" aria-hidden />
           </button>
         </div>

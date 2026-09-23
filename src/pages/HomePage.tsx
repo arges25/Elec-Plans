@@ -12,19 +12,11 @@ import { EmptyState, SectionTitle } from '../components/ui/Card';
 import { useSettingsStore } from '../store/settingsStore';
 import { createDemoProject } from '../services/demo';
 import { toast } from '../store/toastStore';
-import {
-  confirmAndDeleteProject,
-  duplicateProjectWithToast,
-  exportProjectWithToast,
-  importProjectWithToast,
-} from '../services/projectActions';
+import { confirmAndDeleteProject, duplicateProjectWithToast, exportProjectWithToast, importProjectWithToast } from '../services/projectActions';
 import { MGEPLAN_EXTENSION } from '../services/projectTransfer';
 
 function normalize(s: string) {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
 export function HomePage() {
@@ -84,7 +76,14 @@ export function HomePage() {
           </button>
         </div>
         <div className="mx-auto max-w-6xl px-safe-4 pb-6 ">
-          <Button variant="primary" size="lg" block className="text-lg sm:w-auto sm:px-8" icon={<Plus className="size-6" aria-hidden />} onClick={() => navigate('/new')}>
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            className="text-lg sm:w-auto sm:px-8"
+            icon={<Plus className="size-6" aria-hidden />}
+            onClick={() => navigate('/new')}
+          >
             Nouveau chantier
           </Button>
         </div>
@@ -168,7 +167,9 @@ export function HomePage() {
           </EmptyState>
         )}
 
-        {projects && projects.length > 0 && recent.length === 0 && <p className="py-6 text-center text-gray-500">Aucun chantier ne correspond à « {query} ».</p>}
+        {projects && projects.length > 0 && recent.length === 0 && (
+          <p className="py-6 text-center text-gray-500">Aucun chantier ne correspond à « {query} ».</p>
+        )}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {recent.map((p) => (

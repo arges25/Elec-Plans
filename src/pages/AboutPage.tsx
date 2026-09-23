@@ -27,7 +27,8 @@ export default function AboutPage() {
           <div>
             <p className="font-bold">Vos projets sont stockés localement sur cet appareil.</p>
             <p className="mt-1 text-sm text-gray-600">
-              Aucun compte, aucun suivi, aucune donnée envoyée sur internet par défaut. Pensez à exporter vos projets (.mgeplan) pour les sauvegarder ou les transférer.
+              Aucun compte, aucun suivi, aucune donnée envoyée sur internet par défaut. Pensez à exporter vos projets (.mgeplan) pour les sauvegarder ou les
+              transférer.
             </p>
           </div>
         </Card>
@@ -48,8 +49,8 @@ export default function AboutPage() {
         <Card className="flex items-start gap-3 p-4">
           <ShieldAlert className="mt-0.5 size-6 shrink-0 text-brand-600" aria-hidden />
           <p className="text-sm text-gray-700">
-            MG Elec &amp; Plans ne vérifie pas la conformité NF C 15-100 et n’affiche jamais « installation conforme ». Les informations saisies (circuits, protections, sections) sont
-            une aide : la validation reste de la responsabilité de l’électricien.
+            MG Elec &amp; Plans ne vérifie pas la conformité NF C 15-100 et n’affiche jamais « installation conforme ». Les informations saisies (circuits,
+            protections, sections) sont une aide : la validation reste de la responsabilité de l’électricien.
           </p>
         </Card>
 
@@ -58,12 +59,12 @@ export default function AboutPage() {
           <FlaskConical className="mt-0.5 size-6 shrink-0 text-purple-600" aria-hidden />
           <div className="text-sm text-gray-700">
             <p>
-              <strong>Croquis → Plan</strong> : reconstruction automatique locale (OpenCV.js) d’un plan simplifié. Le résultat doit être vérifié et corrigé ; aucune IA n’est
-              utilisée dans cette version.
+              <strong>Croquis → Plan</strong> : reconstruction automatique locale (OpenCV.js) d’un plan simplifié. Le résultat doit être vérifié et corrigé ;
+              aucune IA n’est utilisée dans cette version.
             </p>
             <p className="mt-2">
-              <strong>Impression Bluetooth directe</strong> : uniquement avec Web Bluetooth (Chrome / Edge, pas Safari iOS) et des imprimantes ESC/POS compatibles. Sinon :
-              impression système ou PDF.
+              <strong>Impression Bluetooth directe</strong> : uniquement avec Web Bluetooth (Chrome / Edge, pas Safari iOS) et des imprimantes ESC/POS
+              compatibles. Sinon : impression système ou PDF.
             </p>
           </div>
         </Card>

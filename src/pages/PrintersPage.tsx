@@ -119,7 +119,8 @@ export default function PrintersPage() {
                   label={`Supprimer ${p.name}`}
                   icon={<Trash2 className="size-4 text-red-600" aria-hidden />}
                   onClick={async () => {
-                    if (await confirmDialog({ title: `Supprimer définitivement ${p.name} ?`, confirmLabel: 'Supprimer', danger: true })) await deletePrinterProfile(p.id);
+                    if (await confirmDialog({ title: `Supprimer définitivement ${p.name} ?`, confirmLabel: 'Supprimer', danger: true }))
+                      await deletePrinterProfile(p.id);
                   }}
                 />
               )}
@@ -134,13 +135,16 @@ export default function PrintersPage() {
             <div>
               <p className="font-semibold text-gray-900">{BLUETOOTH_UNAVAILABLE_MESSAGE}</p>
               <p className="mt-1 text-sm text-gray-600">
-                Web Bluetooth est disponible sur Chrome / Edge (Android, Windows, macOS, ChromeOS). Il n’est pas proposé par Safari sur iPhone / iPad : utilisez AirPrint via l’impression système.
+                Web Bluetooth est disponible sur Chrome / Edge (Android, Windows, macOS, ChromeOS). Il n’est pas proposé par Safari sur iPhone / iPad : utilisez
+                AirPrint via l’impression système.
               </p>
             </div>
           </Card>
         ) : (
           <Card className="flex flex-col gap-3 p-4">
-            {adapter === false && <p className="rounded-xl bg-yellow-50 p-3 text-sm text-yellow-900">Aucun adaptateur Bluetooth détecté ou Bluetooth désactivé.</p>}
+            {adapter === false && (
+              <p className="rounded-xl bg-yellow-50 p-3 text-sm text-yellow-900">Aucun adaptateur Bluetooth détecté ou Bluetooth désactivé.</p>
+            )}
             <SelectField
               label="Profil d’imprimante"
               value={profileId}
@@ -172,12 +176,19 @@ export default function PrintersPage() {
                 </Button>
               </div>
             ) : (
-              <Button variant="primary" icon={<Search className="size-5" aria-hidden />} loading={busy} disabled={!profile?.supported} onClick={() => void connect()}>
+              <Button
+                variant="primary"
+                icon={<Search className="size-5" aria-hidden />}
+                loading={busy}
+                disabled={!profile?.supported}
+                onClick={() => void connect()}
+              >
                 Rechercher et connecter
               </Button>
             )}
             <p className="text-xs text-gray-500">
-              Fonction expérimentale : la communication dépend de chaque imprimante. Aucune connexion n’est simulée ; en cas d’échec, utilisez l’impression système ou le PDF.
+              Fonction expérimentale : la communication dépend de chaque imprimante. Aucune connexion n’est simulée ; en cas d’échec, utilisez l’impression
+              système ou le PDF.
             </p>
           </Card>
         )}

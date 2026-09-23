@@ -100,7 +100,10 @@ export function classifySegments(segs: RawSegment[], angleTolerance: number) {
  * et chevauchement ou écart ≤ gapTolerance. Les écarts compatibles avec une
  * ouverture sont mémorisés.
  */
-export function mergeAxis(items: Axis[], o: Pick<ProcessOptions, 'mergeDistance' | 'gapTolerance' | 'openingMin' | 'openingMax' | 'detectOpenings'>): { axes: Axis[]; openings: { axisIndex: number; a: number; b: number }[] } {
+export function mergeAxis(
+  items: Axis[],
+  o: Pick<ProcessOptions, 'mergeDistance' | 'gapTolerance' | 'openingMin' | 'openingMax' | 'detectOpenings'>,
+): { axes: Axis[]; openings: { axisIndex: number; a: number; b: number }[] } {
   // 1) Regroupement par coordonnée (traits parallèles proches = même mur)
   const sorted = [...items].sort((p, q) => p.c - q.c);
   const bands: Axis[][] = [];

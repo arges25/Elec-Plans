@@ -4,10 +4,18 @@ import { Button } from '../ui/Button';
 import { LogoMark } from '../layout/Logo';
 
 const STEPS = [
-  { icon: Camera, title: 'Importez ou photographiez votre plan', text: 'Photo, scan, image, PDF ou simple croquis : partez de ce que vous avez sur le chantier.' },
+  {
+    icon: Camera,
+    title: 'Importez ou photographiez votre plan',
+    text: 'Photo, scan, image, PDF ou simple croquis : partez de ce que vous avez sur le chantier.',
+  },
   { icon: Zap, title: 'Placez vos symboles électriques', text: 'Prises, interrupteurs, éclairages, VMC, RJ45… plus de 150 symboles, aimantés aux murs.' },
   { icon: Cable, title: 'Reliez vos commandes aux éclairages', text: 'Des liaisons pointillées claires pour montrer qui commande quoi à votre client.' },
-  { icon: Printer, title: 'Créez vos étiquettes et exportez le PDF', text: 'Étiquettes de tableau Legrand, Schneider, Hager calibrées au millimètre, plan PDF professionnel.' },
+  {
+    icon: Printer,
+    title: 'Créez vos étiquettes et exportez le PDF',
+    text: 'Étiquettes de tableau Legrand, Schneider, Hager calibrées au millimètre, plan PDF professionnel.',
+  },
 ];
 
 /** Tour guidé du premier lancement (4 écrans maximum). */
@@ -17,7 +25,12 @@ export function OnboardingTour({ onDone }: { onDone: () => void }) {
   const Icon = s.icon;
   const last = step === STEPS.length - 1;
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-ink-900 text-white pt-safe pb-safe" role="dialog" aria-modal="true" aria-label="Bienvenue dans MG Elec & Plans">
+    <div
+      className="fixed inset-0 z-[60] flex flex-col bg-ink-900 text-white pt-safe pb-safe"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Bienvenue dans MG Elec & Plans"
+    >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <LogoMark size={36} />

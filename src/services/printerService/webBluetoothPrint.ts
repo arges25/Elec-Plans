@@ -7,8 +7,7 @@ import { encodeRasterJob, rgbaToMono } from './escpos';
  * Aucune connexion n'est simulée : toutes les fonctions échouent explicitement si le matériel ne répond pas.
  */
 
-export const BLUETOOTH_UNAVAILABLE_MESSAGE =
-  'Impression Bluetooth directe non disponible sur ce navigateur. Utilisez l’impression système ou exportez le PDF.';
+export const BLUETOOTH_UNAVAILABLE_MESSAGE = 'Impression Bluetooth directe non disponible sur ce navigateur. Utilisez l’impression système ou exportez le PDF.';
 
 export function isWebBluetoothAvailable(): boolean {
   return typeof navigator !== 'undefined' && 'bluetooth' in navigator && Boolean(navigator.bluetooth);

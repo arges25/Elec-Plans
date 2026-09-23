@@ -14,9 +14,9 @@ describe('Reconstruction croquis → plan (OpenCV.js)', () => {
     const img = makeSketch() as unknown as ImageData;
     const raw = detectWithOpenCv(cv, img, DEFAULT_RECONSTRUCTION_OPTIONS, 36);
     const { walls, doors, confidence } = toPlanGeometry(img, { width: 1600, height: 1200 }, raw, DEFAULT_RECONSTRUCTION_OPTIONS);
-    console.log(JSON.stringify({ raw: raw.length, n: walls.length, doors: doors.length, confidence, walls: walls.map((w) => [w.x1, w.y1, w.x2, w.y2].map(Math.round).join(',')), d: doors.map((d) => [walls.findIndex((w) => w.id === d.wallId), d.t.toFixed(2), Math.round(d.width)].join('|')) }));
     expect(walls.length).toBeGreaterThanOrEqual(5);
     expect(walls.length).toBeLessThanOrEqual(8);
     expect(confidence).toBeGreaterThan(0.5);
+    expect(doors.length).toBeGreaterThanOrEqual(1);
   });
 });

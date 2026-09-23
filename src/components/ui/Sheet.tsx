@@ -58,7 +58,12 @@ export function Sheet({ open, onClose, title, children, footer, desktop = 'side'
             {title}
           </h2>
           {headerExtra}
-          <button type="button" onClick={onClose} aria-label="Fermer" className="inline-flex size-11 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="inline-flex size-11 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100"
+          >
             <X className="size-5" aria-hidden />
           </button>
         </header>

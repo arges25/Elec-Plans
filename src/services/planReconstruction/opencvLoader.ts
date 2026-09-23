@@ -1,10 +1,14 @@
+import opencvUrl from '@techstark/opencv-js/dist/opencv.js?url';
+
 /**
  * Chargement paresseux d'OpenCV.js (≈ 10 Mo). Le fichier n'est téléchargé qu'à la première
  * utilisation (détection de croquis / de bords) puis mis en cache par le service worker.
+ *
+ * Le script est chargé tel quel (balise <script>, fichier non ré-empaqueté) : son enveloppe UMD
+ * définit `globalThis.cv` (promesse du module Emscripten). On évite ainsi l'interopérabilité
+ * CommonJS du bundler, incompatible avec un module qui exporte une promesse.
  */
 export type OpenCv = typeof import('@techstark/opencv-js');
-
-let cvPromise: Promise<OpenCv> | null = null;
 
 interface OpenCvModuleShape {
   Mat?: unknown;
@@ -12,18 +16,32 @@ interface OpenCvModuleShape {
   onRuntimeInitialized?: () => void;
 }
 
+let cvPromise: Promise<OpenCv> | null = null;
+
+function injectScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Téléchargement d’OpenCV.js impossible'));
+    document.head.appendChild(s);
+  });
+}
+
 export function loadOpenCv(): Promise<OpenCv> {
   if (!cvPromise) {
     cvPromise = (async () => {
-      const mod = (await import('@techstark/opencv-js')) as unknown as { default?: unknown };
-      // Selon la version, le module exporte soit une promesse, soit l'objet `cv` déjà prêt,
-      // soit un objet à initialiser (onRuntimeInitialized). Forme dynamique : typée localement.
-      let cv = (mod.default ?? mod) as OpenCvModuleShape;
-      if (typeof cv.then === 'function') {
-        cv = (await (cv as unknown as Promise<OpenCvModuleShape>)) as OpenCvModuleShape;
+      const g = globalThis as { cv?: unknown };
+      if (!g.cv) await injectScript(opencvUrl);
+      let cv = g.cv as OpenCvModuleShape | undefined;
+      if (!cv) throw new Error('OpenCV.js non initialisé');
+      if (cv instanceof Promise) {
+        cv = (await cv) as OpenCvModuleShape;
       } else if (!cv.Mat) {
+        const pending = cv;
         await new Promise<void>((resolve) => {
-          cv.onRuntimeInitialized = () => resolve();
+          pending.onRuntimeInitialized = () => resolve();
         });
       }
       return cv as unknown as OpenCv;

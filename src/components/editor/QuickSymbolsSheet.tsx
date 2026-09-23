@@ -8,7 +8,17 @@ const TITLES: Record<QuickGroup, string> = { prises: 'Prises', commandes: 'Comma
 const FILTERS: Record<QuickGroup, LibraryFilterId> = { prises: 'prises', commandes: 'commandes', lumieres: 'eclairage' };
 
 /** Accès rapide : 1 toucher = choisir, puis toucher le plan pour placer. */
-export function QuickSymbolsSheet({ group, onClose, onPick, onMore }: { group: QuickGroup | null; onClose: () => void; onPick: (id: string) => void; onMore: (f: LibraryFilterId) => void }) {
+export function QuickSymbolsSheet({
+  group,
+  onClose,
+  onPick,
+  onMore,
+}: {
+  group: QuickGroup | null;
+  onClose: () => void;
+  onPick: (id: string) => void;
+  onMore: (f: LibraryFilterId) => void;
+}) {
   return (
     <Sheet open={Boolean(group)} onClose={onClose} title={group ? TITLES[group] : ''} mobileHeight="half">
       {group && (

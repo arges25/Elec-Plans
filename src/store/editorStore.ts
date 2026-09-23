@@ -220,9 +220,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   addConnection: (sourceId, targetId, style) => {
     const { doc, plan, projectId, connectType } = get();
     if (!plan || !projectId || sourceId === targetId) return 'invalid';
-    const exists = doc.connections.some(
-      (c) => (c.sourceId === sourceId && c.targetId === targetId) || (c.sourceId === targetId && c.targetId === sourceId),
-    );
+    const exists = doc.connections.some((c) => (c.sourceId === sourceId && c.targetId === targetId) || (c.sourceId === targetId && c.targetId === sourceId));
     if (exists) return 'duplicate';
     const group = connectType === 'command' ? nextCommandGroup(doc.connections, sourceId, targetId) : undefined;
     const conn: ElectricalConnection = {
@@ -287,27 +285,33 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newIds: string[] = [];
     get().commit((d) => {
       if (sel.kind === 'symbol') {
-        const copies = d.symbols.filter((s) => ids.has(s.id)).map((s) => {
-          const id = createId('sym');
-          newIds.push(id);
-          return { ...s, id, x: s.x + offset, y: s.y + offset, properties: { ...s.properties } };
-        });
+        const copies = d.symbols
+          .filter((s) => ids.has(s.id))
+          .map((s) => {
+            const id = createId('sym');
+            newIds.push(id);
+            return { ...s, id, x: s.x + offset, y: s.y + offset, properties: { ...s.properties } };
+          });
         return { ...d, symbols: [...d.symbols, ...copies] };
       }
       if (sel.kind === 'annotation') {
-        const copies = d.annotations.filter((a) => ids.has(a.id)).map((a) => {
-          const id = createId('ann');
-          newIds.push(id);
-          return { ...a, id, x: a.x + offset, y: a.y + offset, points: a.points?.map((v) => v + offset) };
-        });
+        const copies = d.annotations
+          .filter((a) => ids.has(a.id))
+          .map((a) => {
+            const id = createId('ann');
+            newIds.push(id);
+            return { ...a, id, x: a.x + offset, y: a.y + offset, points: a.points?.map((v) => v + offset) };
+          });
         return { ...d, annotations: [...d.annotations, ...copies] };
       }
       if (sel.kind === 'wall') {
-        const copies: Wall[] = d.walls.filter((w) => ids.has(w.id)).map((w) => {
-          const id = createId('wall');
-          newIds.push(id);
-          return { ...w, id, x1: w.x1 + offset, y1: w.y1 + offset, x2: w.x2 + offset, y2: w.y2 + offset };
-        });
+        const copies: Wall[] = d.walls
+          .filter((w) => ids.has(w.id))
+          .map((w) => {
+            const id = createId('wall');
+            newIds.push(id);
+            return { ...w, id, x1: w.x1 + offset, y1: w.y1 + offset, x2: w.x2 + offset, y2: w.y2 + offset };
+          });
         return { ...d, walls: [...d.walls, ...copies] };
       }
       return d;
@@ -341,7 +345,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { clipboard, plan, projectId } = get();
     if (!clipboard || !plan || !projectId) return;
     const symbols = clipboard.symbols.map((s) => ({ ...s, id: createId('sym'), planId: plan.id, projectId, x: s.x + offset, y: s.y + offset }));
-    const annotations = clipboard.annotations.map((a) => ({ ...a, id: createId('ann'), x: a.x + offset, y: a.y + offset, points: a.points?.map((v) => v + offset) }));
+    const annotations = clipboard.annotations.map((a) => ({
+      ...a,
+      id: createId('ann'),
+      x: a.x + offset,
+      y: a.y + offset,
+      points: a.points?.map((v) => v + offset),
+    }));
     if (!symbols.length && !annotations.length) return;
     get().commit((d) => ({ ...d, symbols: [...d.symbols, ...symbols], annotations: [...d.annotations, ...annotations] }));
     // Collage successif : décale encore la prochaine fois

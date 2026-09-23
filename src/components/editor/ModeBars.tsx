@@ -5,7 +5,7 @@ import { getSymbolDefinition } from '../../data/electricalSymbols';
 import { docOps, useEditorStore } from '../../store/editorStore';
 import { promptDialog } from '../../store/dialogStore';
 import { SymbolIcon } from '../symbols/SymbolIcon';
-import { Segmented, Toggle } from '../ui/Field';
+import { Segmented } from '../ui/Field';
 import { renameRoom } from './konva/PlanLayers';
 import { toolDef } from './toolDefs';
 import { clampOpeningT } from '../../utils/openings';
@@ -70,9 +70,17 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
         <Bar>
           {wall && (
             <>
-              <Action label="Plus fin" icon={<Minus className={I} aria-hidden />} onClick={() => st.commit(docOps.patchWall(wall.id, { thickness: Math.max(2, wall.thickness - 2) }))} />
+              <Action
+                label="Plus fin"
+                icon={<Minus className={I} aria-hidden />}
+                onClick={() => st.commit(docOps.patchWall(wall.id, { thickness: Math.max(2, wall.thickness - 2) }))}
+              />
               <span className="px-1 text-xs font-bold tabular-nums text-gray-600">{Math.round(wall.thickness)}</span>
-              <Action label="Plus épais" icon={<Plus className={I} aria-hidden />} onClick={() => st.commit(docOps.patchWall(wall.id, { thickness: Math.min(60, wall.thickness + 2) }))} />
+              <Action
+                label="Plus épais"
+                icon={<Plus className={I} aria-hidden />}
+                onClick={() => st.commit(docOps.patchWall(wall.id, { thickness: Math.min(60, wall.thickness + 2) }))}
+              />
             </>
           )}
           <Action label="Dupliquer" icon={<Copy className={I} aria-hidden />} onClick={() => st.duplicateSelection(20)} />
@@ -92,8 +100,16 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
         <Bar>
           <Action label="Plus étroite" icon={<Minus className={I} aria-hidden />} onClick={() => resize(1 / 1.1)} />
           <Action label="Plus large" icon={<Plus className={I} aria-hidden />} onClick={() => resize(1.1)} />
-          <Action label="Sens" icon={<FlipHorizontal2 className={I} aria-hidden />} onClick={() => st.commit(docOps.patchDoor(door.id, { flip: !door.flip }))} />
-          <Action label="Charnière" icon={<RefreshCw className={I} aria-hidden />} onClick={() => st.commit(docOps.patchDoor(door.id, { hingeEnd: !door.hingeEnd }))} />
+          <Action
+            label="Sens"
+            icon={<FlipHorizontal2 className={I} aria-hidden />}
+            onClick={() => st.commit(docOps.patchDoor(door.id, { flip: !door.flip }))}
+          />
+          <Action
+            label="Charnière"
+            icon={<RefreshCw className={I} aria-hidden />}
+            onClick={() => st.commit(docOps.patchDoor(door.id, { hingeEnd: !door.hingeEnd }))}
+          />
           {del}
         </Bar>
       );
@@ -103,8 +119,16 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
       if (!win) return <Bar>{del}</Bar>;
       return (
         <Bar>
-          <Action label="Plus étroite" icon={<Minus className={I} aria-hidden />} onClick={() => st.commit(docOps.patchWindow(win.id, { width: Math.max(20, win.width / 1.1) }))} />
-          <Action label="Plus large" icon={<Plus className={I} aria-hidden />} onClick={() => st.commit(docOps.patchWindow(win.id, { width: win.width * 1.1 }))} />
+          <Action
+            label="Plus étroite"
+            icon={<Minus className={I} aria-hidden />}
+            onClick={() => st.commit(docOps.patchWindow(win.id, { width: Math.max(20, win.width / 1.1) }))}
+          />
+          <Action
+            label="Plus large"
+            icon={<Plus className={I} aria-hidden />}
+            onClick={() => st.commit(docOps.patchWindow(win.id, { width: win.width * 1.1 }))}
+          />
           {del}
         </Bar>
       );
@@ -134,8 +158,16 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
           )}
           {a?.kind === 'text' && (
             <>
-              <Action label="Plus petit" icon={<Minus className={I} aria-hidden />} onClick={() => st.commit(docOps.patchAnnotation(a.id, { fontSize: Math.max(8, (a.fontSize ?? 22) / 1.15) }))} />
-              <Action label="Plus grand" icon={<Plus className={I} aria-hidden />} onClick={() => st.commit(docOps.patchAnnotation(a.id, { fontSize: (a.fontSize ?? 22) * 1.15 }))} />
+              <Action
+                label="Plus petit"
+                icon={<Minus className={I} aria-hidden />}
+                onClick={() => st.commit(docOps.patchAnnotation(a.id, { fontSize: Math.max(8, (a.fontSize ?? 22) / 1.15) }))}
+              />
+              <Action
+                label="Plus grand"
+                icon={<Plus className={I} aria-hidden />}
+                onClick={() => st.commit(docOps.patchAnnotation(a.id, { fontSize: (a.fontSize ?? 22) * 1.15 }))}
+              />
             </>
           )}
           <Action label="+1" icon={<Copy className={I} aria-hidden />} onClick={() => st.duplicateSelection(20)} />
@@ -164,20 +196,34 @@ export function PlaceModeBar() {
   const def = getSymbolDefinition(placeSymbolId);
   const st = useEditorStore.getState();
   return (
-    <div className="pointer-events-auto mx-auto flex w-full max-w-xl flex-col gap-1 rounded-2xl border border-brand-300 bg-white/95 p-2 shadow-xl backdrop-blur animate-pop-in">
+    <div className="pointer-events-auto mx-auto flex w-full max-w-xl flex-col gap-1.5 rounded-2xl border border-brand-300 bg-white/95 p-2 shadow-xl backdrop-blur animate-pop-in">
       <div className="flex items-center gap-2">
-        <SymbolIcon id={placeSymbolId} size={36} />
+        <SymbolIcon id={placeSymbolId} size={34} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold text-gray-900">{def.name}</p>
-          <p className="text-xs text-gray-600">Touchez le plan pour placer · {count} sur ce plan</p>
+          <p className="truncate text-sm font-bold text-gray-900">{def.name}</p>
+          <p className="truncate text-xs text-gray-600">Touchez le plan pour placer · {count} sur ce plan</p>
         </div>
-        <button type="button" onClick={() => st.setTool('select')} className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-green-600 px-4 font-bold text-white hover:bg-green-700">
+        <button
+          type="button"
+          onClick={() => st.setTool('select')}
+          className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-green-600 px-3 text-sm font-bold text-white hover:bg-green-700"
+        >
           <Check className="size-5" aria-hidden /> TERMINER
         </button>
       </div>
-      <div className="px-1">
-        <Toggle label="Placer plusieurs (mode répétition)" checked={repeat} onChange={(v) => st.setRepeat(v)} />
-      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={repeat}
+        onClick={() => st.setRepeat(!repeat)}
+        className="flex min-h-11 items-center justify-between gap-2 rounded-xl bg-gray-50 px-3 text-left text-sm font-semibold text-gray-800"
+      >
+        <span>Placer plusieurs (mode répétition)</span>
+        <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${repeat ? 'bg-green-600' : 'bg-gray-300'}`}>
+          <span className={`inline-block size-5 rounded-full bg-white shadow transition-transform ${repeat ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <span className="sr-only">{repeat ? 'Activé' : 'Désactivé'}</span>
+        </span>
+      </button>
     </div>
   );
 }
@@ -198,15 +244,26 @@ export function ConnectModeBar() {
               Source : <strong>{getSymbolDefinition(source.symbolType).name}</strong> — touchez les éléments à relier
             </>
           ) : (
-            <>Touchez la <strong>commande</strong> (interrupteur, poussoir…) puis l’éclairage.</>
+            <>
+              Touchez la <strong>commande</strong> (interrupteur, poussoir…) puis l’éclairage.
+            </>
           )}
         </p>
         {sourceId && (
-          <button type="button" aria-label="Nouvelle source" onClick={() => st.setConnectSource(null)} className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-gray-300 px-2 text-xs font-semibold">
+          <button
+            type="button"
+            aria-label="Nouvelle source"
+            onClick={() => st.setConnectSource(null)}
+            className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-gray-300 px-2 text-xs font-semibold"
+          >
             <X className="size-4" aria-hidden /> Source
           </button>
         )}
-        <button type="button" onClick={() => st.setTool('select')} className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-green-600 px-3 font-bold text-white hover:bg-green-700">
+        <button
+          type="button"
+          onClick={() => st.setTool('select')}
+          className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-green-600 px-3 font-bold text-white hover:bg-green-700"
+        >
           <Check className="size-5" aria-hidden /> TERMINER
         </button>
       </div>
@@ -236,7 +293,11 @@ export function ToolHintBar() {
       <p className="min-w-0 flex-1 text-sm text-gray-800">
         <strong>{def.label} :</strong> {def.hint}
       </p>
-      <button type="button" onClick={() => useEditorStore.getState().setTool('select')} className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-green-600 px-3 font-bold text-white hover:bg-green-700">
+      <button
+        type="button"
+        onClick={() => useEditorStore.getState().setTool('select')}
+        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-green-600 px-3 font-bold text-white hover:bg-green-700"
+      >
         <Check className="size-5" aria-hidden /> TERMINER
       </button>
     </div>

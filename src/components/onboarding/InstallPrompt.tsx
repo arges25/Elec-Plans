@@ -32,7 +32,12 @@ export function InstallPrompt({ force = false, onClose }: { force?: boolean; onC
   return (
     <section className="relative rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-4 shadow-sm" aria-labelledby="install-title">
       {!force && (
-        <button type="button" aria-label="Fermer" onClick={onClose ?? dismiss} className="absolute right-1 top-1 inline-flex size-11 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100">
+        <button
+          type="button"
+          aria-label="Fermer"
+          onClick={onClose ?? dismiss}
+          className="absolute right-1 top-1 inline-flex size-11 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
+        >
           <X className="size-5" aria-hidden />
         </button>
       )}

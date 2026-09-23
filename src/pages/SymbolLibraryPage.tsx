@@ -35,8 +35,14 @@ export default function SymbolLibraryPage() {
             </div>
             <p className="text-gray-700">{detail.description}</p>
             {detail.keywords.length > 0 && <p className="text-xs text-gray-500">Mots-clés : {detail.keywords.join(', ')}</p>}
-            <p className="text-xs text-gray-400">Identifiant : {detail.id} · taille par défaut {detail.defaultSize}</p>
-            <Button variant={fav ? 'secondary' : 'primary'} icon={<Star className={`size-5 ${fav ? 'fill-volt-400 text-volt-500' : ''}`} aria-hidden />} onClick={() => toggleFavorite(detail.id)}>
+            <p className="text-xs text-gray-400">
+              Identifiant : {detail.id} · taille par défaut {detail.defaultSize}
+            </p>
+            <Button
+              variant={fav ? 'secondary' : 'primary'}
+              icon={<Star className={`size-5 ${fav ? 'fill-volt-400 text-volt-500' : ''}`} aria-hidden />}
+              onClick={() => toggleFavorite(detail.id)}
+            >
               {fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             </Button>
           </div>

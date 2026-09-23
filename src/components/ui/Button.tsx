@@ -27,7 +27,18 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
 }
 
-export function Button({ variant = 'secondary', size = 'md', icon, loading, block, className = '', children, disabled, type = 'button', ...rest }: ButtonProps) {
+export function Button({
+  variant = 'secondary',
+  size = 'md',
+  icon,
+  loading,
+  block,
+  className = '',
+  children,
+  disabled,
+  type = 'button',
+  ...rest
+}: ButtonProps) {
   return (
     <button
       type={type}

@@ -40,17 +40,31 @@ export function ClientPreviewOverlay({ project }: { project: Project | undefined
           </div>
         </div>
         <div className="pointer-events-auto flex gap-2">
-          <button type="button" onClick={() => void shareImage()} aria-label="Partager une image du plan" className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/95 text-gray-800 shadow-lg">
+          <button
+            type="button"
+            onClick={() => void shareImage()}
+            aria-label="Partager une image du plan"
+            className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/95 text-gray-800 shadow-lg"
+          >
             <ImageDown className="size-6" aria-hidden />
           </button>
-          <button type="button" onClick={() => setClientPreview(false)} className="inline-flex min-h-12 items-center gap-1 rounded-2xl bg-ink-900 px-4 font-bold text-white shadow-lg">
+          <button
+            type="button"
+            onClick={() => setClientPreview(false)}
+            className="inline-flex min-h-12 items-center gap-1 rounded-2xl bg-ink-900 px-4 font-bold text-white shadow-lg"
+          >
             <X className="size-5" aria-hidden /> Quitter l’aperçu
           </button>
         </div>
       </div>
       {legend.length > 0 && (
         <div className="absolute bottom-3 left-3 z-10 max-h-[45%] w-64 max-w-[calc(100%-1.5rem)] overflow-hidden rounded-2xl bg-white/95 shadow-lg mb-safe">
-          <button type="button" onClick={() => setLegendOpen((v) => !v)} className="flex min-h-11 w-full items-center justify-between px-3 font-bold text-gray-900" aria-expanded={legendOpen}>
+          <button
+            type="button"
+            onClick={() => setLegendOpen((v) => !v)}
+            className="flex min-h-11 w-full items-center justify-between px-3 font-bold text-gray-900"
+            aria-expanded={legendOpen}
+          >
             Légende {legendOpen ? <ChevronDown className="size-5" aria-hidden /> : <ChevronUp className="size-5" aria-hidden />}
           </button>
           {legendOpen && (

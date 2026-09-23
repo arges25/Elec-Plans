@@ -9,13 +9,20 @@ export function newPrinterProfile(name: string, kind: PrinterProfile['kind'] = '
   return { id: createId('prn'), name, kind, calibration: { ...IDENTITY_CALIBRATION }, createdAt: now, updatedAt: now };
 }
 
+export const DEFAULT_PRINTER_ID = 'default-printer';
+
+/** Profil par défaut (enregistré seulement lorsqu'il est calibré / modifié). */
+function defaultPrinterProfile(): PrinterProfile {
+  return { ...newPrinterProfile('Imprimante par défaut', 'system'), id: DEFAULT_PRINTER_ID, createdAt: 0, updatedAt: 0 };
+}
+
+/**
+ * Liste des profils (lecture seule : utilisable dans une liveQuery).
+ * Si aucun profil n'est enregistré, un profil par défaut non calibré est proposé.
+ */
 export async function listPrinterProfiles(): Promise<PrinterProfile[]> {
   const list = await db.printerProfiles.toArray();
-  if (list.length === 0) {
-    const def = newPrinterProfile('Imprimante par défaut', 'system');
-    await db.printerProfiles.add(def);
-    return [def];
-  }
+  if (list.length === 0) return [defaultPrinterProfile()];
   return list.sort((a, b) => a.createdAt - b.createdAt);
 }
 

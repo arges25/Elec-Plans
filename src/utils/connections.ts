@@ -17,12 +17,7 @@ export function nextCommandGroup(connections: ElectricalConnection[], sourceId: 
 
 /** Courbe d'une liaison, recalculée à partir des positions actuelles des symboles. */
 export function connectionGeometry(conn: ElectricalConnection, source: PlacedSymbol, target: PlacedSymbol): BezierCurve {
-  const { start, end } = connectionAnchors(
-    { x: source.x, y: source.y },
-    symbolAnchorRadius(source),
-    { x: target.x, y: target.y },
-    symbolAnchorRadius(target),
-  );
+  const { start, end } = connectionAnchors({ x: source.x, y: source.y }, symbolAnchorRadius(source), { x: target.x, y: target.y }, symbolAnchorRadius(target));
   return connectionCurve(start, end, conn.curvature);
 }
 

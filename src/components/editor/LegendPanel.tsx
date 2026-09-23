@@ -12,7 +12,12 @@ export function LegendPanel() {
   const hasCmd = connections.some((c) => c.type === 'command');
   const hasCircuit = connections.some((c) => c.type === 'circuit');
   const hasInfo = connections.some((c) => c.type === 'information');
-  if (!legend.length) return <div className="p-4"><EmptyState title="Aucun symbole sur ce plan">La légende se construit automatiquement à partir des symboles placés.</EmptyState></div>;
+  if (!legend.length)
+    return (
+      <div className="p-4">
+        <EmptyState title="Aucun symbole sur ce plan">La légende se construit automatiquement à partir des symboles placés.</EmptyState>
+      </div>
+    );
   return (
     <div className="p-4">
       <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">

@@ -20,14 +20,31 @@ const SECTIONS = ['1,5 mm²', '2,5 mm²', '4 mm²', '6 mm²', '10 mm²', '16 mm�
 const COLORS = ['#1d4ed8', '#0f766e', '#b45309', '#dc2626', '#7c3aed', '#15803d', '#111827', '#f97316'];
 
 /** Champ texte validé à la sortie du champ (une seule entrée dans l'historique). */
-function LazyText({ label, value, onCommit, placeholder, list, multiline, inputMode }: { label: string; value: string; onCommit: (v: string) => void; placeholder?: string; list?: string[]; multiline?: boolean; inputMode?: 'text' | 'numeric' }) {
+function LazyText({
+  label,
+  value,
+  onCommit,
+  placeholder,
+  list,
+  multiline,
+  inputMode,
+}: {
+  label: string;
+  value: string;
+  onCommit: (v: string) => void;
+  placeholder?: string;
+  list?: string[];
+  multiline?: boolean;
+  inputMode?: 'text' | 'numeric';
+}) {
   const [v, setV] = useState(value);
   const id = useId();
   useEffect(() => setV(value), [value]);
   const commit = () => {
     if (v !== value) onCommit(v);
   };
-  const cls = 'w-full min-h-11 rounded-xl border border-gray-300 bg-white px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200';
+  const cls =
+    'w-full min-h-11 rounded-xl border border-gray-300 bg-white px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200';
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-semibold text-gray-700">
@@ -96,12 +113,23 @@ export function PropertiesPanel({ symbolId, onClose }: { symbolId: string; onClo
       setProps({ circuitId: undefined, circuitName: undefined, circuitNumber: undefined });
       return;
     }
-    setProps({ circuitId: c.id, circuitName: c.name, circuitNumber: c.number, breaker: c.protection || symbol.properties.breaker, cableSection: c.cableSection || symbol.properties.cableSection });
+    setProps({
+      circuitId: c.id,
+      circuitName: c.name,
+      circuitNumber: c.number,
+      breaker: c.protection || symbol.properties.breaker,
+      cableSection: c.cableSection || symbol.properties.cableSection,
+    });
   };
 
   const createCircuit = async () => {
     if (!projectId) return;
-    const name = await promptDialog({ title: 'Nouveau circuit', label: 'Nom du circuit', placeholder: 'Prises cuisine', defaultValue: symbol.properties.room ? `${def.role === 'light' ? 'Éclairage' : 'Prises'} ${symbol.properties.room.toLowerCase()}` : '' });
+    const name = await promptDialog({
+      title: 'Nouveau circuit',
+      label: 'Nom du circuit',
+      placeholder: 'Prises cuisine',
+      defaultValue: symbol.properties.room ? `${def.role === 'light' ? 'Éclairage' : 'Prises'} ${symbol.properties.room.toLowerCase()}` : '',
+    });
     if (!name?.trim()) return;
     const p = panel ?? (await getOrCreateProjectPanel(projectId));
     const existing = await db.circuits.where('panelId').equals(p.id).toArray();
@@ -138,8 +166,19 @@ export function PropertiesPanel({ symbolId, onClose }: { symbolId: string; onClo
         </div>
       </div>
 
-      <LazyText label="Nom affiché sur le plan" value={symbol.properties.label ?? ''} placeholder="ex. Four, Lave-vaisselle" onCommit={(v) => setProps({ label: v.trim() || undefined })} />
-      <LazyText label="Pièce" value={symbol.properties.room ?? ''} placeholder="Cuisine" list={roomNames} onCommit={(v) => setProps({ room: v.trim() || undefined })} />
+      <LazyText
+        label="Nom affiché sur le plan"
+        value={symbol.properties.label ?? ''}
+        placeholder="ex. Four, Lave-vaisselle"
+        onCommit={(v) => setProps({ label: v.trim() || undefined })}
+      />
+      <LazyText
+        label="Pièce"
+        value={symbol.properties.room ?? ''}
+        placeholder="ex. Cuisine"
+        list={roomNames}
+        onCommit={(v) => setProps({ room: v.trim() || undefined })}
+      />
 
       <div className="flex flex-col gap-1">
         <label htmlFor="prop-circuit" className="text-sm font-semibold text-gray-700">
@@ -166,18 +205,40 @@ export function PropertiesPanel({ symbolId, onClose }: { symbolId: string; onClo
           <option value="__new">+ Nouveau circuit…</option>
         </select>
         {!symbol.properties.circuitId && (
-          <LazyText label="Nom du circuit (libre)" value={symbol.properties.circuitName ?? ''} placeholder="Prises cuisine" onCommit={(v) => setProps({ circuitName: v.trim() || undefined })} />
+          <LazyText
+            label="Nom du circuit (libre)"
+            value={symbol.properties.circuitName ?? ''}
+            placeholder="ex. Prises cuisine"
+            onCommit={(v) => setProps({ circuitName: v.trim() || undefined })}
+          />
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <LazyText label="Numéro circuit" value={symbol.properties.circuitNumber ?? ''} placeholder="3" onCommit={(v) => setProps({ circuitNumber: v.trim() || undefined })} />
-        <LazyText label="Disjoncteur" value={symbol.properties.breaker ?? ''} placeholder="C16" list={BREAKERS} onCommit={(v) => setProps({ breaker: v.trim() || undefined })} />
-        <LazyText label="Section câble" value={symbol.properties.cableSection ?? ''} placeholder="2,5 mm²" list={SECTIONS} onCommit={(v) => setProps({ cableSection: v.trim() || undefined })} />
+        <LazyText
+          label="Numéro circuit"
+          value={symbol.properties.circuitNumber ?? ''}
+          placeholder="ex. 3"
+          onCommit={(v) => setProps({ circuitNumber: v.trim() || undefined })}
+        />
+        <LazyText
+          label="Disjoncteur"
+          value={symbol.properties.breaker ?? ''}
+          placeholder="ex. C16"
+          list={BREAKERS}
+          onCommit={(v) => setProps({ breaker: v.trim() || undefined })}
+        />
+        <LazyText
+          label="Section câble"
+          value={symbol.properties.cableSection ?? ''}
+          placeholder="ex. 2,5 mm²"
+          list={SECTIONS}
+          onCommit={(v) => setProps({ cableSection: v.trim() || undefined })}
+        />
         <LazyText
           label="Hauteur (cm)"
           value={symbol.properties.heightCm !== undefined ? String(symbol.properties.heightCm) : ''}
-          placeholder="110"
+          placeholder="ex. 110"
           inputMode="numeric"
           onCommit={(v) => {
             const n = Number.parseFloat(v.replace(',', '.'));
@@ -185,10 +246,25 @@ export function PropertiesPanel({ symbolId, onClose }: { symbolId: string; onClo
           }}
         />
       </div>
-      <LazyText label="Commentaire" value={symbol.properties.comment ?? ''} placeholder="Prévoir boîte profonde…" multiline onCommit={(v) => setProps({ comment: v.trim() || undefined })} />
+      <LazyText
+        label="Commentaire"
+        value={symbol.properties.comment ?? ''}
+        placeholder="ex. Prévoir boîte profonde"
+        multiline
+        onCommit={(v) => setProps({ comment: v.trim() || undefined })}
+      />
 
       <div>
-        <Slider label="Rotation" value={rotation} min={0} max={359} step={1} onChange={setRotation} onCommit={(v) => update({ rotation: v })} format={(v) => `${Math.round(v)}°`} />
+        <Slider
+          label="Rotation"
+          value={rotation}
+          min={0}
+          max={359}
+          step={1}
+          onChange={setRotation}
+          onCommit={(v) => update({ rotation: v })}
+          format={(v) => `${Math.round(v)}°`}
+        />
         <div className="mt-1 grid grid-cols-2 gap-2">
           <Button size="sm" icon={<RotateCcw className="size-4" aria-hidden />} onClick={() => update({ rotation: (symbol.rotation + 270) % 360 })}>
             -90°
@@ -198,7 +274,16 @@ export function PropertiesPanel({ symbolId, onClose }: { symbolId: string; onClo
           </Button>
         </div>
       </div>
-      <Slider label="Taille" value={scale} min={0.4} max={3} step={0.05} onChange={setScale} onCommit={(v) => update({ scale: v })} format={(v) => `${Math.round(v * 100)} %`} />
+      <Slider
+        label="Taille"
+        value={scale}
+        min={0.4}
+        max={3}
+        step={0.05}
+        onChange={setScale}
+        onCommit={(v) => update({ scale: v })}
+        format={(v) => `${Math.round(v * 100)} %`}
+      />
 
       <div>
         <p className="mb-1 text-sm font-semibold text-gray-700">Couleur</p>

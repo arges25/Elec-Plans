@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { DialogHost } from './components/ui/DialogHost';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Toaster } from './components/ui/Toaster';
 import { PwaUpdater } from './pwa/PwaUpdater';
 import { HomePage } from './pages/HomePage';
@@ -36,35 +37,38 @@ function PageLoader() {
 }
 
 export function App() {
+  const location = useLocation();
   return (
     <>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/new" element={<NewProjectPage />} />
-          <Route path="/project/:projectId" element={<ProjectRedirect />} />
-          <Route path="/project/:projectId/info" element={<NewProjectPage />} />
-          <Route path="/project/:projectId/plan/:planId" element={<PlanEditorPage />} />
-          <Route path="/project/:projectId/plan/:planId/import" element={<ImportPlanPage />} />
-          <Route path="/project/:projectId/plan/:planId/scan" element={<ScannerPage />} />
-          <Route path="/project/:projectId/plan/:planId/sketch" element={<SketchToPlanPage />} />
-          <Route path="/project/:projectId/export" element={<ExportPage />} />
-          <Route path="/project/:projectId/panel" element={<ProjectPanelRedirect />} />
-          <Route path="/panel/:panelId" element={<ElectricalPanelPage />} />
-          <Route path="/panel/:panelId/labels" element={<LabelsPage />} />
-          <Route path="/panel/:panelId/preview" element={<LabelPreviewPage />} />
-          <Route path="/library" element={<SymbolLibraryPage />} />
-          <Route path="/labels" element={<LabelsHomePage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/templates/:templateId" element={<TemplateEditorPage />} />
-          <Route path="/printers" element={<PrintersPage />} />
-          <Route path="/calibration" element={<PrintCalibrationPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary resetKey={location.pathname}>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/new" element={<NewProjectPage />} />
+            <Route path="/project/:projectId" element={<ProjectRedirect />} />
+            <Route path="/project/:projectId/info" element={<NewProjectPage />} />
+            <Route path="/project/:projectId/plan/:planId" element={<PlanEditorPage />} />
+            <Route path="/project/:projectId/plan/:planId/import" element={<ImportPlanPage />} />
+            <Route path="/project/:projectId/plan/:planId/scan" element={<ScannerPage />} />
+            <Route path="/project/:projectId/plan/:planId/sketch" element={<SketchToPlanPage />} />
+            <Route path="/project/:projectId/export" element={<ExportPage />} />
+            <Route path="/project/:projectId/panel" element={<ProjectPanelRedirect />} />
+            <Route path="/panel/:panelId" element={<ElectricalPanelPage />} />
+            <Route path="/panel/:panelId/labels" element={<LabelsPage />} />
+            <Route path="/panel/:panelId/preview" element={<LabelPreviewPage />} />
+            <Route path="/library" element={<SymbolLibraryPage />} />
+            <Route path="/labels" element={<LabelsHomePage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/templates/:templateId" element={<TemplateEditorPage />} />
+            <Route path="/printers" element={<PrintersPage />} />
+            <Route path="/calibration" element={<PrintCalibrationPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
       <Toaster />
       <DialogHost />
       <PwaUpdater />

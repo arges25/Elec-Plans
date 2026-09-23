@@ -22,17 +22,9 @@ export default function ProjectsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const list = useMemo(() => {
-    const q = query
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '');
+    const q = query.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const filtered = (projects ?? []).filter((p) =>
-      `${p.name} ${p.clientName} ${p.address} ${p.city}`
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .includes(q),
+      `${p.name} ${p.clientName} ${p.address} ${p.city}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q),
     );
     return filtered.sort((a, b) => (sort === 'recent' ? b.updatedAt - a.updatedAt : a.name.localeCompare(b.name, 'fr')));
   }, [projects, query, sort]);
@@ -45,7 +37,12 @@ export default function ProjectsPage() {
         back="/"
         actions={
           <>
-            <IconButton tone="dark" label="Importer un projet MG Elec & Plans" icon={<FileUp className="size-5" aria-hidden />} onClick={() => fileRef.current?.click()} />
+            <IconButton
+              tone="dark"
+              label="Importer un projet MG Elec & Plans"
+              icon={<FileUp className="size-5" aria-hidden />}
+              onClick={() => fileRef.current?.click()}
+            />
             <IconButton tone="brand" label="Nouveau chantier" icon={<Plus className="size-5" aria-hidden />} onClick={() => navigate('/new')} />
           </>
         }

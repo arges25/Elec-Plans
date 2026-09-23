@@ -14,6 +14,10 @@ export function useKeyboardShortcuts(enabled: boolean): void {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e) || document.querySelector('[role="alertdialog"]')) return;
       const st = useEditorStore.getState();
+      if (st.clientPreview) {
+        if (e.key === 'Escape') st.setClientPreview(false);
+        return;
+      }
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       if (mod && key === 'z' && !e.shiftKey) {

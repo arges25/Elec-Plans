@@ -55,7 +55,14 @@ export default function LabelsHomePage() {
           Tableaux
         </SectionTitle>
         {panels && panels.length === 0 && (
-          <EmptyState title="Aucun tableau" action={<Button variant="primary" onClick={() => void createStandalone()}>Créer un tableau</Button>}>
+          <EmptyState
+            title="Aucun tableau"
+            action={
+              <Button variant="primary" onClick={() => void createStandalone()}>
+                Créer un tableau
+              </Button>
+            }
+          >
             Chaque chantier possède son tableau. Vous pouvez aussi créer un tableau indépendant pour imprimer rapidement des étiquettes.
           </EmptyState>
         )}
@@ -68,7 +75,8 @@ export default function LabelsHomePage() {
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => navigate(`/panel/${p.id}/labels`)}>
                 <p className="truncate font-bold">{projectName(p.projectId) ?? p.name}</p>
                 <p className="text-xs text-gray-500">
-                  {p.projectId ? 'Chantier' : 'Tableau indépendant'} · {counts?.get(p.id) ?? 0} circuit(s) · {p.rows.length} rangée(s) · modifié {formatRelativeDate(p.updatedAt)}
+                  {p.projectId ? 'Chantier' : 'Tableau indépendant'} · {counts?.get(p.id) ?? 0} circuit(s) · {p.rows.length} rangée(s) · modifié{' '}
+                  {formatRelativeDate(p.updatedAt)}
                 </p>
               </button>
               <Button size="sm" onClick={() => navigate(`/panel/${p.id}`)}>
@@ -79,7 +87,8 @@ export default function LabelsHomePage() {
                   label={`Supprimer ${p.name}`}
                   icon={<Trash2 className="size-4 text-red-600" aria-hidden />}
                   onClick={async () => {
-                    if (await confirmDialog({ title: `Supprimer définitivement ${p.name} ?`, confirmLabel: 'Supprimer', danger: true })) await deletePanel(p.id);
+                    if (await confirmDialog({ title: `Supprimer définitivement ${p.name} ?`, confirmLabel: 'Supprimer', danger: true }))
+                      await deletePanel(p.id);
                   }}
                 />
               )}

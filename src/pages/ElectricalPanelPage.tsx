@@ -45,7 +45,10 @@ export default function ElectricalPanelPage() {
     for (const s of symbols) if (s.properties.circuitId) m.set(s.properties.circuitId, (m.get(s.properties.circuitId) ?? 0) + 1);
     return m;
   }, [symbols]);
-  const pendingNames = useMemo(() => new Set(symbols.filter((s) => !s.properties.circuitId && s.properties.circuitName).map((s) => s.properties.circuitName!.trim().toLowerCase())).size, [symbols]);
+  const pendingNames = useMemo(
+    () => new Set(symbols.filter((s) => !s.properties.circuitId && s.properties.circuitName).map((s) => s.properties.circuitName!.trim().toLowerCase())).size,
+    [symbols],
+  );
 
   if (!panel) {
     return (
@@ -171,7 +174,13 @@ export default function ElectricalPanelPage() {
                       {used} / {cap} modules
                     </Badge>
                     <IconButton label={`Renommer ${row.name}`} icon={<Pencil className="size-4" aria-hidden />} onClick={() => void renameRow(row.id)} />
-                    {panel.rows.length > 1 && <IconButton label={`Supprimer ${row.name}`} icon={<Trash2 className="size-4 text-red-600" aria-hidden />} onClick={() => void removeRow(row.id)} />}
+                    {panel.rows.length > 1 && (
+                      <IconButton
+                        label={`Supprimer ${row.name}`}
+                        icon={<Trash2 className="size-4 text-red-600" aria-hidden />}
+                        onClick={() => void removeRow(row.id)}
+                      />
+                    )}
                   </div>
                 }
               >
@@ -196,19 +205,39 @@ export default function ElectricalPanelPage() {
                 {rowCircuits.map((c, i) => (
                   <div key={c.id} className="flex items-center gap-2 p-2 pl-3">
                     <span className="w-8 shrink-0 text-center text-lg font-extrabold tabular-nums text-gray-900">{c.number || '–'}</span>
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-50">{c.icon && <SymbolIcon id={c.icon} size={30} color="#111827" />}</span>
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-50">
+                      {c.icon && <SymbolIcon id={c.icon} size={30} color="#111827" />}
+                    </span>
                     <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setEditing({ circuit: c, isNew: false })}>
                       <p className="truncate font-semibold text-gray-900">{c.name}</p>
                       <p className="truncate text-xs text-gray-500">
-                        {[c.protection, c.cableSection, `${c.modules} module${c.modules > 1 ? 's' : ''}`, symbolCountByCircuit.get(c.id) ? `${symbolCountByCircuit.get(c.id)} symbole(s)` : ''].filter(Boolean).join(' · ')}
+                        {[
+                          c.protection,
+                          c.cableSection,
+                          `${c.modules} module${c.modules > 1 ? 's' : ''}`,
+                          symbolCountByCircuit.get(c.id) ? `${symbolCountByCircuit.get(c.id)} symbole(s)` : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </p>
                     </button>
                     <IconButton label="Monter" icon={<ArrowUp className="size-4" aria-hidden />} onClick={() => void move(c, -1)} disabled={i === 0} />
-                    <IconButton label="Descendre" icon={<ArrowDown className="size-4" aria-hidden />} onClick={() => void move(c, 1)} disabled={i === rowCircuits.length - 1} />
+                    <IconButton
+                      label="Descendre"
+                      icon={<ArrowDown className="size-4" aria-hidden />}
+                      onClick={() => void move(c, 1)}
+                      disabled={i === rowCircuits.length - 1}
+                    />
                   </div>
                 ))}
               </Card>
-              <Button size="sm" variant="ghost" className="mt-2 text-brand-600" icon={<Plus className="size-4" aria-hidden />} onClick={() => addCircuit(row.id)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-2 text-brand-600"
+                icon={<Plus className="size-4" aria-hidden />}
+                onClick={() => addCircuit(row.id)}
+              >
                 Ajouter un circuit à {row.name}
               </Button>
             </section>
@@ -223,7 +252,8 @@ export default function ElectricalPanelPage() {
         {circuits.length === 0 && (
           <div className="mt-6">
             <EmptyState title="Tableau vide">
-              Ajoutez vos circuits rangée par rangée (ex. 1 Éclairage salon, 2 Prises salon, 3 Prises cuisine, 4 Four…). Les étiquettes seront proposées automatiquement.
+              Ajoutez vos circuits rangée par rangée (ex. 1 Éclairage salon, 2 Prises salon, 3 Prises cuisine, 4 Four…). Les étiquettes seront proposées
+              automatiquement.
             </EmptyState>
           </div>
         )}
@@ -243,7 +273,12 @@ export default function ElectricalPanelPage() {
           if (panel.projectId) {
             const linked = symbols.filter((s) => s.properties.circuitId === c.id);
             if (linked.length)
-              await db.symbolsPlaced.bulkPut(linked.map((s) => ({ ...s, properties: { ...s.properties, circuitName: c.name, circuitNumber: c.number, breaker: c.protection, cableSection: c.cableSection } })));
+              await db.symbolsPlaced.bulkPut(
+                linked.map((s) => ({
+                  ...s,
+                  properties: { ...s.properties, circuitName: c.name, circuitNumber: c.number, breaker: c.protection, cableSection: c.cableSection },
+                })),
+              );
           }
           toast.success(editing?.isNew ? 'Circuit ajouté ✓' : 'Circuit enregistré ✓');
           setEditing(null);

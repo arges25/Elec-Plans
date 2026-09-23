@@ -220,10 +220,6 @@ export function PlanStage() {
     return q;
   };
 
-  const finishWallChain = () => {
-    if (draftRef.current?.kind === 'wall') setDraft(null);
-  };
-
   // Termine le tracé en cours quand on change d'outil
   useEffect(() => {
     setDraft(null);
@@ -301,10 +297,19 @@ export function PlanStage() {
       const w = d.end.x - d.start.x;
       const h = d.end.y - d.start.y;
       if (Math.abs(w) > 4 / zoom && Math.abs(h) > 4 / zoom)
-        commitAnnotation({ kind: d.kind, x: Math.min(d.start.x, d.end.x), y: Math.min(d.start.y, d.end.y), width: Math.abs(w), height: Math.abs(h), color, strokeWidth: sw });
+        commitAnnotation({
+          kind: d.kind,
+          x: Math.min(d.start.x, d.end.x),
+          y: Math.min(d.start.y, d.end.y),
+          width: Math.abs(w),
+          height: Math.abs(h),
+          color,
+          strokeWidth: sw,
+        });
       setDraft(null);
     } else if (d.kind === 'arrow') {
-      if (distance(d.start, d.end) > 10 / zoom) commitAnnotation({ kind: 'arrow', x: 0, y: 0, points: [d.start.x, d.start.y, d.end.x, d.end.y], color, strokeWidth: sw });
+      if (distance(d.start, d.end) > 10 / zoom)
+        commitAnnotation({ kind: 'arrow', x: 0, y: 0, points: [d.start.x, d.start.y, d.end.x, d.end.y], color, strokeWidth: sw });
       setDraft(null);
     } else if (d.kind === 'pen') {
       if (d.points.length >= 4) commitAnnotation({ kind: 'pen', x: 0, y: 0, points: d.points, color, strokeWidth: sw });
@@ -351,7 +356,8 @@ export function PlanStage() {
         }
         const wall: Wall = { id: createId('wall'), x1: last.x, y1: last.y, x2: q.x, y2: q.y, thickness: wallThickness };
         st.commit(docOps.addWalls([wall]));
-        if (d.points.length > 1 && distance(q, d.points[0]) < 1) setDraft(null); // boucle fermée
+        if (d.points.length > 1 && distance(q, d.points[0]) < 1)
+          setDraft(null); // boucle fermée
         else setDraft({ kind: 'wall', points: [...d.points, q], cursor: q });
         return;
       }
@@ -362,7 +368,8 @@ export function PlanStage() {
           toast.info(tool === 'door' ? 'Touchez un mur pour placer la porte' : 'Touchez un mur pour placer la fenêtre');
           return;
         }
-        const width = tool === 'door' ? (ppm ? 0.83 * ppm : Math.max(40, Math.max(planW, planH) / 22)) : ppm ? 1.2 * ppm : Math.max(50, Math.max(planW, planH) / 18);
+        const width =
+          tool === 'door' ? (ppm ? 0.83 * ppm : Math.max(40, Math.max(planW, planH) / 22)) : ppm ? 1.2 * ppm : Math.max(50, Math.max(planW, planH) / 18);
         const t = clampOpeningT(nw.wall, nw.t, width);
         if (tool === 'door') {
           const door: Door = { id: createId('door'), wallId: nw.wall.id, t, width, flip: false, hingeEnd: false };
@@ -427,6 +434,17 @@ export function PlanStage() {
 
   /* ---------------- Rendu ---------------- */
   const symbolsById = useMemo(() => new Map(doc.symbols.map((s) => [s.id, s])), [doc.symbols]);
+  /** Une seule étiquette « Commande N » par groupe (sur la première liaison du groupe). */
+  const labelledConnections = useMemo(() => {
+    const seen = new Set<number>();
+    const ids = new Set<string>();
+    for (const c of doc.connections) {
+      if (c.type !== 'command' || c.group === undefined || !c.showLabel || seen.has(c.group)) continue;
+      seen.add(c.group);
+      ids.add(c.id);
+    }
+    return ids;
+  }, [doc.connections]);
   const wallsById = useMemo(() => new Map(doc.walls.map((w) => [w.id, w])), [doc.walls]);
   const sel = selection;
   const isSel = (kind: string, id: string) => !clientPreview && sel?.kind === kind && sel.ids.includes(id);
@@ -453,7 +471,6 @@ export function PlanStage() {
         onPointerUp={onPointerUp}
         onClick={(e) => void onStageTap(e)}
         onTap={(e) => void onStageTap(e)}
-        onDblClick={finishWallChain}
         onDragStart={(e) => {
           if (e.target === stageRef.current && editorRuntime.pinching) stageRef.current?.stopDrag();
         }}
@@ -463,8 +480,20 @@ export function PlanStage() {
       >
         {/* Fond : papier, plan original, grille */}
         <Layer listening={false}>
-          <Rect name="paper" x={0} y={0} width={planW} height={planH} fill="#ffffff" shadowColor="#111827" shadowBlur={clientPreview ? 0 : 12} shadowOpacity={0.15} />
-          {L.original.visible && bgImage && <KonvaImage name="background" image={bgImage} x={0} y={0} width={planW} height={planH} opacity={plan?.backgroundOpacity ?? 1} />}
+          <Rect
+            name="paper"
+            x={0}
+            y={0}
+            width={planW}
+            height={planH}
+            fill="#ffffff"
+            shadowColor="#111827"
+            shadowBlur={clientPreview ? 0 : 12}
+            shadowOpacity={0.15}
+          />
+          {L.original.visible && bgImage && (
+            <KonvaImage name="background" image={bgImage} x={0} y={0} width={planW} height={planH} opacity={plan?.backgroundOpacity ?? 1} />
+          )}
           {settings.gridEnabled && !clientPreview && (
             <Shape
               stroke="#e5e7eb"
@@ -522,7 +551,7 @@ export function PlanStage() {
                     target={t}
                     selected={isSel('connection', c.id)}
                     interactive={editable && selectTool}
-                    showNumber={settings.showCommandNumbers}
+                    showNumber={settings.showCommandNumbers && labelledConnections.has(c.id)}
                   />
                 );
               })}
@@ -566,10 +595,24 @@ export function PlanStage() {
             <DraftPreview draft={draft} zoom={zoom} wallThickness={wallThickness} />
             {selectTool && selectedWall && !L.reconstructed.locked && <WallHandles wall={selectedWall} walls={doc.walls} zoom={zoom} />}
             {selectTool && selectedDoor && wallsById.get(selectedDoor.wallId) && (
-              <OpeningHandle kind="door" id={selectedDoor.id} wall={wallsById.get(selectedDoor.wallId)!} t={selectedDoor.t} width={selectedDoor.width} zoom={zoom} />
+              <OpeningHandle
+                kind="door"
+                id={selectedDoor.id}
+                wall={wallsById.get(selectedDoor.wallId)!}
+                t={selectedDoor.t}
+                width={selectedDoor.width}
+                zoom={zoom}
+              />
             )}
             {selectTool && selectedWindow && wallsById.get(selectedWindow.wallId) && (
-              <OpeningHandle kind="window" id={selectedWindow.id} wall={wallsById.get(selectedWindow.wallId)!} t={selectedWindow.t} width={selectedWindow.width} zoom={zoom} />
+              <OpeningHandle
+                kind="window"
+                id={selectedWindow.id}
+                wall={wallsById.get(selectedWindow.wallId)!}
+                t={selectedWindow.t}
+                width={selectedWindow.width}
+                zoom={zoom}
+              />
             )}
             {selectTool && sel?.kind === 'symbol' && !L.symbols.locked && <SelectionTransformer ids={sel.ids} touch={isTouchDevice} />}
           </Layer>

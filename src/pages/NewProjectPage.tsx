@@ -120,12 +120,38 @@ export default function NewProjectPage() {
               autoFocus={!editing}
               autoComplete="off"
             />
-            <TextField label="Nom du client" placeholder="M. et Mme Martin" value={form.clientName} onValueChange={(v) => set('clientName', v)} autoComplete="name" />
-            <TextField label="Adresse" placeholder="12 rue des Lilas" value={form.address} onValueChange={(v) => set('address', v)} autoComplete="street-address" />
+            <TextField
+              label="Nom du client"
+              placeholder="M. et Mme Martin"
+              value={form.clientName}
+              onValueChange={(v) => set('clientName', v)}
+              autoComplete="name"
+            />
+            <TextField
+              label="Adresse"
+              placeholder="12 rue des Lilas"
+              value={form.address}
+              onValueChange={(v) => set('address', v)}
+              autoComplete="street-address"
+            />
             <TextField label="Ville" placeholder="Lyon" value={form.city} onValueChange={(v) => set('city', v)} autoComplete="address-level2" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label="Téléphone (facultatif)" type="tel" inputMode="tel" value={form.phone} onValueChange={(v) => set('phone', v)} autoComplete="tel" />
-              <TextField label="Email (facultatif)" type="email" inputMode="email" value={form.email} onValueChange={(v) => set('email', v)} autoComplete="email" />
+              <TextField
+                label="Téléphone (facultatif)"
+                type="tel"
+                inputMode="tel"
+                value={form.phone}
+                onValueChange={(v) => set('phone', v)}
+                autoComplete="tel"
+              />
+              <TextField
+                label="Email (facultatif)"
+                type="email"
+                inputMode="email"
+                value={form.email}
+                onValueChange={(v) => set('email', v)}
+                autoComplete="email"
+              />
             </div>
           </Card>
           <Card className="flex flex-col gap-4 p-4">
@@ -141,7 +167,12 @@ export default function NewProjectPage() {
               )}
             </div>
             {!editing && form.floorType === 'custom' && (
-              <TextField label="Nom du niveau" placeholder="Combles, Dépendance…" value={form.customFloorName} onValueChange={(v) => set('customFloorName', v)} />
+              <TextField
+                label="Nom du niveau"
+                placeholder="Combles, Dépendance…"
+                value={form.customFloorName}
+                onValueChange={(v) => set('customFloorName', v)}
+              />
             )}
             <TextArea label="Notes" placeholder="Accès, contraintes, demandes du client…" value={form.notes} onValueChange={(v) => set('notes', v)} />
           </Card>

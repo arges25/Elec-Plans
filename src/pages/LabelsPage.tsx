@@ -79,7 +79,11 @@ export default function LabelsPage() {
             <Button size="sm" icon={<SlidersHorizontal className="size-4" aria-hidden />} onClick={() => navigate(`/templates/${template.id}`)}>
               Dimensions du modèle
             </Button>
-            <Button size="sm" icon={<Ruler className="size-4" aria-hidden />} onClick={() => navigate(`/calibration?printer=${printer?.id ?? ''}&template=${template.id}`)}>
+            <Button
+              size="sm"
+              icon={<Ruler className="size-4" aria-hidden />}
+              onClick={() => navigate(`/calibration?printer=${printer?.id ?? ''}&template=${template.id}`)}
+            >
               Calibrer mon imprimante
             </Button>
             <Badge tone="yellow">Hauteur : {template.labelHeightMm} mm (à vérifier)</Badge>
@@ -94,7 +98,14 @@ export default function LabelsPage() {
 
         <SectionTitle>Aperçu des bandes (touchez une étiquette pour la modifier)</SectionTitle>
         {circuits.length === 0 ? (
-          <EmptyState title="Aucun circuit" action={<Button variant="primary" onClick={() => navigate(`/panel/${panel.id}`)}>Ajouter des circuits</Button>}>
+          <EmptyState
+            title="Aucun circuit"
+            action={
+              <Button variant="primary" onClick={() => navigate(`/panel/${panel.id}`)}>
+                Ajouter des circuits
+              </Button>
+            }
+          >
             Les étiquettes sont générées automatiquement à partir des circuits du tableau.
           </EmptyState>
         ) : (
@@ -133,13 +144,26 @@ export default function LabelsPage() {
             <Button icon={<Eye className="size-5" aria-hidden />} onClick={() => navigate(`/panel/${panel.id}/preview`)} disabled={!circuits.length}>
               Aperçu
             </Button>
-            <Button variant="primary" icon={<Printer className="size-5" aria-hidden />} disabled={busy || !circuits.length} onClick={() => void act(() => printLabelsSystem(strips, template, cal, copies))}>
+            <Button
+              variant="primary"
+              icon={<Printer className="size-5" aria-hidden />}
+              disabled={busy || !circuits.length}
+              onClick={() => void act(() => printLabelsSystem(strips, template, cal, copies))}
+            >
               Impression système
             </Button>
-            <Button icon={<Download className="size-5" aria-hidden />} disabled={busy || !circuits.length} onClick={() => void act(() => downloadLabelsPdf(strips, template, cal, name, copies), 'PDF créé ✓')}>
+            <Button
+              icon={<Download className="size-5" aria-hidden />}
+              disabled={busy || !circuits.length}
+              onClick={() => void act(() => downloadLabelsPdf(strips, template, cal, name, copies), 'PDF créé ✓')}
+            >
               PDF
             </Button>
-            <Button icon={<Share2 className="size-5" aria-hidden />} disabled={busy || !circuits.length} onClick={() => void act(() => shareLabelsPdf(strips, template, cal, name, copies))}>
+            <Button
+              icon={<Share2 className="size-5" aria-hidden />}
+              disabled={busy || !circuits.length}
+              onClick={() => void act(() => shareLabelsPdf(strips, template, cal, name, copies))}
+            >
               Partager
             </Button>
             <Button
@@ -161,8 +185,15 @@ export default function LabelsPage() {
               Bluetooth
             </Button>
           </div>
-          <p className="rounded-xl bg-yellow-50 p-3 text-sm font-medium text-yellow-900">Lors de l’impression, désactivez l’option « Ajuster à la page » (échelle 100 %).</p>
-          <Button variant="ghost" size="sm" icon={<Ruler className="size-4" aria-hidden />} onClick={() => navigate(`/calibration?printer=${printer?.id ?? ''}&template=${template.id}`)}>
+          <p className="rounded-xl bg-yellow-50 p-3 text-sm font-medium text-yellow-900">
+            Lors de l’impression, désactivez l’option « Ajuster à la page » (échelle 100 %).
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Ruler className="size-4" aria-hidden />}
+            onClick={() => navigate(`/calibration?printer=${printer?.id ?? ''}&template=${template.id}`)}
+          >
             Imprimer une bande test
           </Button>
         </Card>
@@ -243,11 +274,20 @@ function LabelEditSheet({
       }
     >
       <div className="flex flex-col gap-4 p-4">
-        <TextField label="Texte de l’étiquette" value={text} onValueChange={setText} hint="Le texte est réduit automatiquement (2 lignes max.) pour ne jamais dépasser la case." />
+        <TextField
+          label="Texte de l’étiquette"
+          value={text}
+          onValueChange={setText}
+          hint="Le texte est réduit automatiquement (2 lignes max.) pour ne jamais dépasser la case."
+        />
         <div>
           <p className="mb-1 text-sm font-semibold text-gray-700">Pictogramme</p>
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
-            <button type="button" onClick={() => setIcon(undefined)} className={`min-h-14 rounded-xl border text-xs font-semibold ${!icon ? 'border-brand-500 bg-brand-50' : 'border-gray-200'}`}>
+            <button
+              type="button"
+              onClick={() => setIcon(undefined)}
+              className={`min-h-14 rounded-xl border text-xs font-semibold ${!icon ? 'border-brand-500 bg-brand-50' : 'border-gray-200'}`}
+            >
               Aucun
             </button>
             {LABEL_ICON_CHOICES.map((ic) => (

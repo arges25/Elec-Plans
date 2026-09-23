@@ -11,7 +11,13 @@ import { rotatePoint } from '../../utils/geometry';
 
 export function hexToRgb(hex: string): Color {
   const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.padEnd(6, '0');
+  const full =
+    h.length === 3
+      ? h
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : h.padEnd(6, '0');
   const n = Number.parseInt(full.slice(0, 6), 16);
   return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 }
@@ -78,7 +84,17 @@ export function drawPath(
   });
 }
 
-export function drawLine(ctx: Ctx, x1: number, y1: number, x2: number, y2: number, color: Color, thickness: number, cap: 'butt' | 'square' | 'round' = 'butt', dash?: number[]): void {
+export function drawLine(
+  ctx: Ctx,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  color: Color,
+  thickness: number,
+  cap: 'butt' | 'square' | 'round' = 'butt',
+  dash?: number[],
+): void {
   ctx.page.drawLine({
     start: { x: x1, y: ctx.H - y1 },
     end: { x: x2, y: ctx.H - y2 },
@@ -143,7 +159,16 @@ export function wrapText(font: PDFFont, text: string, size: number, maxWidth: nu
  * Dessine un symbole (primitives de la boîte 40 × 40) en vectoriel.
  * @param tx, ty centre du symbole (pt, repère page) ; scale = pt par unité-symbole.
  */
-export function drawSymbolPrimitives(ctx: Ctx, shapes: SymbolPrimitive[], color: string, tx: number, ty: number, rotation: number, scale: number, fonts: { bold: PDFFont; regular: PDFFont }): void {
+export function drawSymbolPrimitives(
+  ctx: Ctx,
+  shapes: SymbolPrimitive[],
+  color: string,
+  tx: number,
+  ty: number,
+  rotation: number,
+  scale: number,
+  fonts: { bold: PDFFont; regular: PDFFont },
+): void {
   const c = hexToRgb(color);
   const fillOf = (f: string | undefined) => (f === 'color' ? c : f === 'white' ? WHITE : undefined);
   const t = { tx, ty, rotation, scale };
@@ -179,7 +204,9 @@ export function drawSymbolPrimitives(ctx: Ctx, shapes: SymbolPrimitive[], color:
 export function drawLogo(ctx: Ctx, x: number, y: number, size: number): void {
   const k = size / 512;
   const t = { tx: x, ty: y, rotation: 0, scale: k };
-  drawPath(ctx, transformSvgPath('M112 0H400A112 112 0 0 1 512 112V400A112 112 0 0 1 400 512H112A112 112 0 0 1 0 400V112A112 112 0 0 1 112 0Z', t), { fill: hexToRgb('#111827') });
+  drawPath(ctx, transformSvgPath('M112 0H400A112 112 0 0 1 512 112V400A112 112 0 0 1 400 512H112A112 112 0 0 1 0 400V112A112 112 0 0 1 112 0Z', t), {
+    fill: hexToRgb('#111827'),
+  });
   drawPath(ctx, transformSvgPath('M84 250V90h46l40 78 40-78h46v160h-40v-92l-34 64h-24l-34-64v92z', t), { fill: WHITE });
   drawPath(ctx, transformSvgPath('M419 118A74 74 0 1 0 431 180H364', t), { stroke: WHITE, width: 38 * k });
   drawPath(ctx, transformSvgPath('M112 300h290v130H112zM240 300v78M240 406v24M112 366h72', t), { stroke: hexToRgb('#9ca3af'), width: 12 * k });

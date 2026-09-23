@@ -37,7 +37,11 @@ export default function TemplatesPage() {
     return (
       <Card key={t.id} className="flex flex-col gap-2 p-4">
         <div className="flex items-start gap-3">
-          <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white ${BRAND_COLORS[t.brand] ?? 'bg-ink-900'}`}>{t.brand.slice(0, 2).toUpperCase()}</span>
+          <span
+            className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white ${BRAND_COLORS[t.brand] ?? 'bg-ink-900'}`}
+          >
+            {t.brand.slice(0, 2).toUpperCase()}
+          </span>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-gray-900">{t.name}</p>
             <p className="text-sm text-gray-600">
@@ -65,7 +69,14 @@ export default function TemplatesPage() {
               label="Réinitialiser le modèle"
               icon={<RotateCcw className="size-4" aria-hidden />}
               onClick={async () => {
-                if (await confirmDialog({ title: `Réinitialiser ${t.name} ?`, message: 'Les dimensions d’origine seront restaurées.', confirmLabel: 'Réinitialiser' })) await deleteTemplate(t.id);
+                if (
+                  await confirmDialog({
+                    title: `Réinitialiser ${t.name} ?`,
+                    message: 'Les dimensions d’origine seront restaurées.',
+                    confirmLabel: 'Réinitialiser',
+                  })
+                )
+                  await deleteTemplate(t.id);
               }}
             />
           )}
@@ -91,14 +102,17 @@ export default function TemplatesPage() {
       <AppHeader title="Choix du fabricant" subtitle="Modèles d’étiquettes de tableau" back />
       <PageBody className="max-w-3xl">
         <p className="rounded-xl bg-yellow-50 p-3 text-sm text-yellow-900">
-          Les hauteurs d’étiquette sont des valeurs par défaut <strong>non officielles</strong> : mesurez le porte-étiquette de votre tableau et ajustez le modèle.
+          Les hauteurs d’étiquette sont des valeurs par défaut <strong>non officielles</strong> : mesurez le porte-étiquette de votre tableau et ajustez le
+          modèle.
         </p>
         <SectionTitle>Fabricants</SectionTitle>
         <div className="flex flex-col gap-3">{templates.filter((t) => t.builtIn).map(card)}</div>
         <SectionTitle>Mes modèles personnalisés</SectionTitle>
         <div className="flex flex-col gap-3">
           {templates.filter((t) => !t.builtIn).map(card)}
-          {templates.filter((t) => !t.builtIn).length === 0 && <p className="text-sm text-gray-500">Dupliquez un modèle pour créer le vôtre (ex. « Legrand perso garage »).</p>}
+          {templates.filter((t) => !t.builtIn).length === 0 && (
+            <p className="text-sm text-gray-500">Dupliquez un modèle pour créer le vôtre (ex. « Legrand perso garage »).</p>
+          )}
         </div>
       </PageBody>
     </div>

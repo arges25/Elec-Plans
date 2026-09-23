@@ -141,9 +141,14 @@ export default function LabelPreviewPage() {
         }
       >
         <div className="flex flex-col gap-3 p-4">
-          <p className="text-sm text-gray-600">Posez une carte bancaire (85,6 mm) sur l’écran et ajustez le rectangle pour qu’il ait exactement la même largeur.</p>
+          <p className="text-sm text-gray-600">
+            Posez une carte bancaire (85,6 mm) sur l’écran et ajustez le rectangle pour qu’il ait exactement la même largeur.
+          </p>
           <div className="overflow-hidden">
-            <div className="rounded-xl border-2 border-brand-500 bg-gradient-to-br from-brand-100 to-yellow-100" style={{ width: cardPx, height: cardPx * (53.98 / 85.6) }} />
+            <div
+              className="rounded-xl border-2 border-brand-500 bg-gradient-to-br from-brand-100 to-yellow-100"
+              style={{ width: cardPx, height: cardPx * (53.98 / 85.6) }}
+            />
           </div>
           <Slider label="Largeur" value={cardPx} min={150} max={700} onChange={setCardPx} format={(v) => `${v} px`} />
         </div>
