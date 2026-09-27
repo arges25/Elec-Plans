@@ -3,16 +3,21 @@ import { useEditorStore } from '../../store/editorStore';
 import { buildLegend } from '../../utils/legend';
 import { SymbolIcon } from '../symbols/SymbolIcon';
 import { EmptyState } from '../ui/Card';
+import { LedStripIcon } from '../symbols/LedStripIcon';
+import { ledLegendLabel } from '../../utils/ledStrip';
 
 /** Légende automatique : liste des symboles présents sur le plan. */
 export function LegendPanel() {
   const symbols = useEditorStore((s) => s.doc.symbols);
   const connections = useEditorStore((s) => s.doc.connections);
+  const ledStrips = useEditorStore((s) => s.doc.ledStrips);
+  const ppm = useEditorStore((s) => s.doc.scale?.pixelsPerMeter);
+  const ledLabel = ledLegendLabel(ledStrips, ppm);
   const legend = useMemo(() => buildLegend(symbols), [symbols]);
   const hasCmd = connections.some((c) => c.type === 'command');
   const hasCircuit = connections.some((c) => c.type === 'circuit');
   const hasInfo = connections.some((c) => c.type === 'information');
-  if (!legend.length)
+  if (!legend.length && !ledLabel)
     return (
       <div className="p-4">
         <EmptyState title="Aucun symbole sur ce plan">La légende se construit automatiquement à partir des symboles placés.</EmptyState>
@@ -28,6 +33,13 @@ export function LegendPanel() {
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold tabular-nums text-gray-700">× {e.count}</span>
           </li>
         ))}
+        {ledLabel && (
+          <li className="flex items-center gap-3 px-3 py-2">
+            <LedStripIcon size={32} color={ledStrips[0].color} />
+            <span className="flex-1 text-sm font-medium text-gray-800">{ledLabel}</span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold tabular-nums text-gray-700">× {ledStrips.length}</span>
+          </li>
+        )}
         {hasCmd && <LegendLine color="#f97316" dash="6 4" label="Liaison de commande" />}
         {hasCircuit && <LegendLine color="#2563eb" dash="12 5" label="Liaison de circuit" />}
         {hasInfo && <LegendLine color="#6b7280" dash="1 5" label="Information" />}

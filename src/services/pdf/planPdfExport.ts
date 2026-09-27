@@ -8,6 +8,7 @@ import { doorGeometry, openingFrame } from '../../utils/openings';
 import { buildLegend } from '../../utils/legend';
 import { formatDate, formatMeters } from '../../utils/format';
 import { symbolUnitScale, symbolWorldSize } from '../../utils/symbols';
+import { ledCaption, ledCaptionPlacement, ledLength, ledLengthMeters } from '../../utils/ledStrip';
 import { dataUrlToEmbeddable } from '../imageProcessing';
 import { BLACK, GRAY, LIGHT_GRAY, ORANGE, WHITE, drawLine, drawLogo, drawPath, drawSymbolPrimitives, drawText, hexToRgb, wrapText, type Ctx } from './pdfUtils';
 
@@ -96,7 +97,8 @@ export async function generatePlanPdf(project: Project, pages: PlanPage[], optio
     let content: Box = { x: m, y: m + headerH + mmToPt(3), w: W - 2 * m, h: H - 2 * m - headerH - footerH - mmToPt(5) };
     const legend = options.showLegend ? buildLegend(doc.symbols) : [];
     const notes = options.showNotes && project.notes.trim() ? project.notes.trim() : '';
-    const hasSide = legend.length > 0 || notes;
+    const hasLed = options.showLegend && doc.ledStrips.length > 0;
+    const hasSide = legend.length > 0 || notes || hasLed;
     let side: Box | null = null;
     if (hasSide) {
       if (options.orientation === 'landscape') {
@@ -104,7 +106,7 @@ export async function generatePlanPdf(project: Project, pages: PlanPage[], optio
         side = { x: content.x + content.w - sw, y: content.y, w: sw, h: content.h };
         content = { ...content, w: content.w - sw - mmToPt(4) };
       } else {
-        const lines = Math.ceil(legend.length / 2) + (notes ? 4 : 0) + 2;
+        const lines = Math.ceil(legend.length / 2) + (notes ? 4 : 0) + (hasLed ? 1 : 0) + 2;
         const sh = Math.min(content.h * 0.38, mmToPt(6) + lines * mmToPt(5.2));
         side = { x: content.x, y: content.y + content.h - sh, w: content.w, h: sh };
         content = { ...content, h: content.h - sh - mmToPt(4) };
@@ -174,6 +176,7 @@ function contentBounds(doc: PlanDocument) {
     extendBounds(b, mm.x1, mm.y1, 20);
     extendBounds(b, mm.x2, mm.y2, 20);
   }
+  for (const l of doc.ledStrips) for (let i = 0; i + 1 < l.points.length; i += 2) extendBounds(b, l.points[i], l.points[i + 1], l.width * 4);
   return b;
 }
 
@@ -271,6 +274,43 @@ async function drawPlan(pdf: PDFDocument, ctx: Ctx, plan: Plan, doc: PlanDocumen
     }
   }
 
+  // Bandes LED (tube coloré + points lumineux + « LED 3,20 m »)
+  for (const l of doc.ledStrips) {
+    if (l.points.length < 4) continue;
+    let d = `M${X(l.points[0])} ${Y(l.points[1])}`;
+    for (let i = 2; i + 1 < l.points.length; i += 2) d += `L${X(l.points[i])} ${Y(l.points[i + 1])}`;
+    if (l.closed) d += 'Z';
+    const w = Math.max(0.8, l.width * k);
+    drawPath(ctx, d, { stroke: hexToRgb('#1f2937'), width: w * 1.45, cap: 'round', opacity: 0.8 });
+    drawPath(ctx, d, { stroke: hexToRgb(l.color), width: w, cap: 'round' });
+    drawPath(ctx, d, { stroke: WHITE, width: w * 0.45, cap: 'round', dash: [0.01, w * 1.7] });
+    if (!l.closed)
+      ctx.page.drawCircle({
+        x: X(l.points[0]),
+        y: ctx.H - Y(l.points[1]),
+        size: w * 0.95,
+        color: hexToRgb('#1f2937'),
+        borderColor: WHITE,
+        borderWidth: w * 0.3,
+      });
+    const place = ledCaptionPlacement(l.points, l.closed);
+    if (place) {
+      const fs = Math.max(5, Math.min(9, (Math.max(plan.width, plan.height) / 80) * 0.75 * k));
+      const off = l.width * k * 0.9 + fs * 0.75;
+      const px = X(place.x) + place.nx * off;
+      const py = Y(place.y) + place.ny * off;
+      const rad = (place.angle * Math.PI) / 180;
+      // Ligne de base décalée pour centrer le texte sur (px, py)
+      drawText(ctx, ledCaption(l, doc.scale?.pixelsPerMeter), px - Math.sin(rad) * fs * 0.35, py + Math.cos(rad) * fs * 0.35, {
+        font: fonts.bold,
+        size: fs,
+        color: hexToRgb('#374151'),
+        align: 'center',
+        rotation: place.angle,
+      });
+    }
+  }
+
   for (const s of doc.symbols) {
     const def = getSymbolDefinition(s.symbolType);
     const unit = symbolUnitScale(def, s.scale) * k;
@@ -346,7 +386,7 @@ function drawLegendBlock(ctx: Ctx, doc: PlanDocument, legend: ReturnType<typeof 
   const pad = mmToPt(3);
   let y = box.y + pad + 8;
   const colW = (box.w - pad * 2) / columns;
-  if (legend.length) {
+  if (legend.length || doc.ledStrips.length) {
     drawText(ctx, 'LÉGENDE', box.x + pad, y, { font: fonts.bold, size: 9, color: BLACK });
     y += mmToPt(3);
     const rowH = mmToPt(5.2);
@@ -362,6 +402,20 @@ function drawLegendBlock(ctx: Ctx, doc: PlanDocument, legend: ReturnType<typeof 
       drawText(ctx, `${e.def.name}  (${e.count})`, cx + icon + mmToPt(2), cy + 2.5, { font: fonts.regular, size: 7, maxWidth: colW - icon - mmToPt(3) });
     });
     y += rows * rowH + mmToPt(1);
+    if (doc.ledStrips.length && y + mmToPt(4) <= box.y + box.h - pad) {
+      const lx = box.x + pad;
+      const lw = 2.4;
+      const d = `M${lx} ${y + 3} L${lx + icon} ${y + 3}`;
+      drawPath(ctx, d, { stroke: hexToRgb('#1f2937'), width: lw * 1.45, cap: 'round' });
+      drawPath(ctx, d, { stroke: hexToRgb(doc.ledStrips[0].color), width: lw, cap: 'round' });
+      drawPath(ctx, d, { stroke: WHITE, width: lw * 0.45, cap: 'round', dash: [0.01, lw * 1.7] });
+      const ppm = doc.scale?.pixelsPerMeter;
+      const total = doc.ledStrips.reduce((sum, l) => sum + ledLength(l.points, l.closed), 0);
+      const meters = ledLengthMeters({ points: [0, 0, total, 0] }, ppm);
+      const label = `Bande LED  (${doc.ledStrips.length})${meters !== null ? ` — ${meters.toFixed(2).replace('.', ',')} m` : ''}`;
+      drawText(ctx, label, lx + icon + mmToPt(2), y + 5, { font: fonts.regular, size: 7, maxWidth: box.w - pad * 2 - icon - mmToPt(3) });
+      y += mmToPt(4.5);
+    }
     const types: [string, string, string][] = [];
     if (doc.connections.some((c) => c.type === 'command')) types.push(['#f97316', 'dash', 'Liaison de commande']);
     if (doc.connections.some((c) => c.type === 'circuit')) types.push(['#2563eb', 'long', 'Liaison de circuit']);

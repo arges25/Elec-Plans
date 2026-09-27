@@ -17,8 +17,12 @@ import { parseMeters, formatMeters } from '../../utils/format';
 import { AnnotationNode, ConnectionLine, DoorShape, MeasureNode, RoomLabel, WallShape, WindowShape } from './konva/PlanLayers';
 import { SymbolLabel, SymbolNode } from './konva/SymbolsLayer';
 import { DraftPreview, Guides, OpeningHandle, SelectionTransformer, WallHandles, type Draft } from './konva/Overlay';
-import { editorRuntime, isDuplicateActivation, stopActiveDrag } from './runtime';
+import { editorRuntime, hapticTick, isDuplicateActivation, stopActiveDrag } from './runtime';
 import { placeSymbolAt } from './editorActions';
+import { LedDraftPreview, LedStripHandles, LedStripNode } from './konva/LedStripLayer';
+import { commitLedDraft, defaultLedWidth } from './ledActions';
+import { useLedDraftStore } from '../../store/ledDraftStore';
+import { LED_DEFAULT_COLOR, snapLedPoint } from '../../utils/ledStrip';
 
 Konva.hitOnDragEnabled = true;
 Konva.dragDistance = 4;
@@ -59,6 +63,11 @@ export function PlanStage() {
   const connectSourceId = useEditorStore((s) => s.connectSourceId);
   const settings = useSettingsStore((s) => s.settings);
   const setScale = useViewStore((s) => s.setScale);
+  const ledPoints = useLedDraftStore((s) => s.points);
+  const ledCursor = useLedDraftStore((s) => s.cursor);
+  const ledExtendId = useLedDraftStore((s) => s.extendId);
+  /** Le premier point de la bande a été posé par l'appui en cours (annulé si pincement). */
+  const ledStartedHere = useRef(false);
   const setApi = useViewStore((s) => s.setApi);
 
   const bgSrc = plan?.processedImage ?? plan?.originalImage;
@@ -68,6 +77,8 @@ export function PlanStage() {
   const ppm = doc.scale?.pixelsPerMeter;
   const wallThickness = defaultWallThickness(planW, planH, ppm);
   const baseFont = Math.max(14, Math.round(Math.max(planW, planH) / 80));
+  /** Écart entre la face d'un mur et une bande LED accrochée (≈ 4 cm). */
+  const ledWallGap = ppm ? 0.04 * ppm : Math.max(2, wallThickness * 0.35);
 
   const layer = useCallback((id: string) => plan?.layers.find((l) => l.id === id) ?? { id, visible: true, locked: false }, [plan?.layers]);
   const L = {
@@ -187,6 +198,11 @@ export function PlanStage() {
     pointerDown.current = false;
     const d = draftRef.current;
     if (d && (d.kind === 'pen' || d.kind === 'rect' || d.kind === 'circle' || d.kind === 'arrow' || d.kind === 'room')) setDraft(null);
+    // Bande LED : le segment en cours est abandonné (le zoom ne trace rien)
+    const led = useLedDraftStore.getState();
+    if (ledStartedHere.current && led.points.length === 1 && !led.extendId) led.reset();
+    else led.setCursor(null);
+    ledStartedHere.current = false;
   };
 
   // Rotation de l'écran : un glisser en cours est annulé (aucun symbole ne bouge).
@@ -266,19 +282,60 @@ export function PlanStage() {
   // Termine le tracé en cours quand on change d'outil
   useEffect(() => {
     setDraft(null);
+    // Bande LED en cours : enregistrée (au moins 2 points) quand on quitte l'outil
+    if (tool !== 'led' && useLedDraftStore.getState().points.length) {
+      const id = commitLedDraft();
+      const st = useEditorStore.getState();
+      if (id && st.tool === 'select') st.select('led', [id]);
+    }
   }, [tool, setDraft]);
+  useEffect(() => () => useLedDraftStore.getState().reset(), []);
+
+  const ledSnap = (p: Point, from: Point | null, start: Point | null): Point =>
+    snapLedPoint(p, {
+      from,
+      start,
+      walls: doc.walls,
+      radius: 16 / zoom,
+      gap: ledWallGap,
+      snapWalls: settings.snapEnabled,
+      gridSize: settings.gridEnabled ? settings.gridSize : null,
+    }).point;
 
   const onPointerDown = () => {
     if (clientPreview || editorRuntime.pinching) return;
     const p = worldPointer();
     if (!p) return;
     pointerDown.current = true;
+    if (tool === 'led') {
+      const led = useLedDraftStore.getState();
+      const pts = led.points;
+      if (!pts.length) {
+        const q = ledSnap(p, null, null);
+        led.start([q]);
+        led.setCursor(q);
+        ledStartedHere.current = true;
+      } else {
+        ledStartedHere.current = false;
+        led.setCursor(ledSnap(p, pts[pts.length - 1], pts.length >= 3 ? pts[0] : null));
+      }
+      return;
+    }
     if (tool === 'rect' || tool === 'circle' || tool === 'arrow' || tool === 'room') setDraft({ kind: tool, start: p, end: p });
     else if (tool === 'pen') setDraft({ kind: 'pen', points: [p.x, p.y] });
   };
 
   const onPointerMove = () => {
     if (clientPreview || editorRuntime.pinching) return;
+    if (tool === 'led') {
+      const led = useLedDraftStore.getState();
+      const pts = led.points;
+      // Au doigt : le segment suit le doigt pendant l'appui ; à la souris, il suit le pointeur
+      if (!pts.length || (!pointerDown.current && isTouchDevice)) return;
+      const p = worldPointer();
+      if (p) led.setCursor(ledSnap(p, pts[pts.length - 1], pts.length >= 3 ? pts[0] : null));
+      return;
+    }
     const d = draftRef.current;
     if (!d) return;
     const p = worldPointer();
@@ -332,6 +389,38 @@ export function PlanStage() {
     if (!pointerDown.current) return;
     pointerDown.current = false;
     if (clientPreview) return;
+    if (tool === 'led') {
+      const led = useLedDraftStore.getState();
+      const pts = led.points;
+      const q = led.cursor;
+      const last = pts[pts.length - 1];
+      const startedHere = ledStartedHere.current;
+      ledStartedHere.current = false;
+      if (!q || !last) return;
+      if (distance(q, last) < 8 / zoom) {
+        // Toucher sur le dernier point = terminer la bande
+        if (!startedHere && pts.length >= 2) {
+          const id = commitLedDraft();
+          const st = useEditorStore.getState();
+          st.setTool('select');
+          if (id) st.select('led', [id]);
+        } else if (isTouchDevice) led.setCursor(null);
+        return;
+      }
+      if (pts.length >= 3 && distance(q, pts[0]) < 1e-6) {
+        // Retour au point de départ : contour fermé
+        const id = commitLedDraft({ close: true });
+        const st = useEditorStore.getState();
+        st.setTool('select');
+        if (id) st.select('led', [id]);
+        toast.success('Contour LED fermé ✓');
+        return;
+      }
+      led.setPoints([...pts, q]);
+      led.setCursor(isTouchDevice ? null : q);
+      hapticTick(settings.vibration);
+      return;
+    }
     const d = draftRef.current;
     if (!d) return;
     const color = '#111827';
@@ -499,7 +588,9 @@ export function PlanStage() {
   const selectedWall = sel?.kind === 'wall' && sel.ids.length === 1 ? wallsById.get(sel.ids[0]) : undefined;
   const selectedDoor = sel?.kind === 'door' && sel.ids.length === 1 ? doc.doors.find((d) => d.id === sel.ids[0]) : undefined;
   const selectedWindow = sel?.kind === 'window' && sel.ids.length === 1 ? doc.windows.find((d) => d.id === sel.ids[0]) : undefined;
-  const cursor = tool === 'select' ? 'default' : tool === 'place' || tool === 'wall' || tool === 'measure' || tool === 'scale' ? 'crosshair' : 'copy';
+  const selectedLed = sel?.kind === 'led' && sel.ids.length === 1 ? doc.ledStrips.find((l) => l.id === sel.ids[0]) : undefined;
+  const cursor =
+    tool === 'select' ? 'default' : tool === 'place' || tool === 'wall' || tool === 'measure' || tool === 'scale' || tool === 'led' ? 'crosshair' : 'copy';
 
   return (
     <div ref={containerRef} className="absolute inset-0 touch-none bg-gray-200" style={{ cursor }} data-testid="plan-stage">
@@ -563,104 +654,141 @@ export function PlanStage() {
 
         {/* Plan reconstruit : murs, ouvertures, pièces */}
         {L.reconstructed.visible && (
-          <Layer key={`plan-${resetKey}`} listening={editable && !L.reconstructed.locked && selectTool}>
-            {doc.walls.map((w) => (
-              <WallShape key={w.id} wall={w} selected={isSel('wall', w.id)} interactive={editable && selectTool} />
-            ))}
-            {doc.doors.map((d) => {
-              const w = wallsById.get(d.wallId);
-              return w ? <DoorShape key={d.id} door={d} wall={w} selected={isSel('door', d.id)} interactive={editable && selectTool} /> : null;
-            })}
-            {doc.windows.map((o) => {
-              const w = wallsById.get(o.wallId);
-              return w ? <WindowShape key={o.id} win={o} wall={w} selected={isSel('window', o.id)} interactive={editable && selectTool} /> : null;
-            })}
-            {doc.rooms.map((r) => (
-              <RoomLabel key={r.id} room={r} selected={isSel('room', r.id)} interactive={editable && selectTool} fontSize={baseFont * 1.1} />
-            ))}
+          <Layer listening={editable && !L.reconstructed.locked && selectTool}>
+            {/* Clé de remise à zéro : recrée les nœuds (pas le canevas, qui peut porter le toucher en cours) */}
+            <Group key={`plan-${resetKey}`}>
+              {doc.walls.map((w) => (
+                <WallShape key={w.id} wall={w} selected={isSel('wall', w.id)} interactive={editable && selectTool} />
+              ))}
+              {doc.doors.map((d) => {
+                const w = wallsById.get(d.wallId);
+                return w ? <DoorShape key={d.id} door={d} wall={w} selected={isSel('door', d.id)} interactive={editable && selectTool} /> : null;
+              })}
+              {doc.windows.map((o) => {
+                const w = wallsById.get(o.wallId);
+                return w ? <WindowShape key={o.id} win={o} wall={w} selected={isSel('window', o.id)} interactive={editable && selectTool} /> : null;
+              })}
+              {doc.rooms.map((r) => (
+                <RoomLabel key={r.id} room={r} selected={isSel('room', r.id)} interactive={editable && selectTool} fontSize={baseFont * 1.1} />
+              ))}
+            </Group>
           </Layer>
         )}
 
         {/* Liaisons, symboles, annotations, mesures */}
-        <Layer key={`content-${resetKey}`}>
-          {L.connections.visible && (
-            <Group listening={editable && !L.connections.locked && selectTool}>
-              {doc.connections.map((c) => {
-                const s = symbolsById.get(c.sourceId);
-                const t = symbolsById.get(c.targetId);
-                if (!s || !t) return null;
-                return (
-                  <ConnectionLine
-                    key={c.id}
-                    conn={c}
-                    source={s}
-                    target={t}
-                    selected={isSel('connection', c.id)}
-                    interactive={editable && selectTool}
-                    showNumber={settings.showCommandNumbers && labelledConnections.has(c.id)}
+        <Layer>
+          <Group key={`content-${resetKey}`}>
+            {L.connections.visible && (
+              <Group listening={editable && !L.connections.locked && selectTool}>
+                {doc.connections.map((c) => {
+                  const s = symbolsById.get(c.sourceId);
+                  const t = symbolsById.get(c.targetId);
+                  if (!s || !t) return null;
+                  return (
+                    <ConnectionLine
+                      key={c.id}
+                      conn={c}
+                      source={s}
+                      target={t}
+                      selected={isSel('connection', c.id)}
+                      interactive={editable && selectTool}
+                      showNumber={settings.showCommandNumbers && labelledConnections.has(c.id)}
+                    />
+                  );
+                })}
+              </Group>
+            )}
+            {L.symbols.visible && doc.ledStrips.length > 0 && (
+              <Group>
+                {doc.ledStrips.map((l) =>
+                  l.id === ledExtendId && tool === 'led' ? null : (
+                    <LedStripNode
+                      key={l.id}
+                      strip={l}
+                      selected={isSel('led', l.id)}
+                      interactive={editable && selectTool && !L.symbols.locked}
+                      zoom={zoom}
+                      pixelsPerMeter={ppm}
+                      fontSize={baseFont * 0.75}
+                    />
+                  ),
+                )}
+              </Group>
+            )}
+            {L.symbols.visible && (
+              <Group>
+                {doc.symbols.map((s) => (
+                  <SymbolNode
+                    key={s.id}
+                    symbol={s}
+                    selected={isSel('symbol', s.id)}
+                    draggable={editable && selectTool && !L.symbols.locked && isSel('symbol', s.id)}
+                    listening={editable && !L.symbols.locked && (selectTool || tool === 'connect')}
+                    connectSource={connectSourceId === s.id}
                   />
-                );
-              })}
-            </Group>
-          )}
-          {L.symbols.visible && (
-            <Group>
-              {doc.symbols.map((s) => (
-                <SymbolNode
-                  key={s.id}
-                  symbol={s}
-                  selected={isSel('symbol', s.id)}
-                  draggable={editable && selectTool && !L.symbols.locked && isSel('symbol', s.id)}
-                  listening={editable && !L.symbols.locked && (selectTool || tool === 'connect')}
-                  connectSource={connectSourceId === s.id}
-                />
-              ))}
-              {doc.symbols.map((s) => (s.properties.label ? <SymbolLabel key={`l-${s.id}`} symbol={s} /> : null))}
-            </Group>
-          )}
-          {L.annotations.visible && (
-            <Group listening={editable && !L.annotations.locked && selectTool}>
-              {doc.annotations.map((a) => (
-                <AnnotationNode key={a.id} a={a} selected={isSel('annotation', a.id)} interactive={editable && selectTool && !L.annotations.locked} />
-              ))}
-            </Group>
-          )}
-          {L.measures.visible && (
-            <Group listening={editable && !L.measures.locked && selectTool}>
-              {doc.measures.map((m) => (
-                <MeasureNode key={m.id} m={m} scale={doc.scale} selected={isSel('measure', m.id)} interactive={editable && selectTool} zoom={zoom} />
-              ))}
-            </Group>
-          )}
+                ))}
+                {doc.symbols.map((s) => (s.properties.label ? <SymbolLabel key={`l-${s.id}`} symbol={s} /> : null))}
+              </Group>
+            )}
+            {L.annotations.visible && (
+              <Group listening={editable && !L.annotations.locked && selectTool}>
+                {doc.annotations.map((a) => (
+                  <AnnotationNode key={a.id} a={a} selected={isSel('annotation', a.id)} interactive={editable && selectTool && !L.annotations.locked} />
+                ))}
+              </Group>
+            )}
+            {L.measures.visible && (
+              <Group listening={editable && !L.measures.locked && selectTool}>
+                {doc.measures.map((m) => (
+                  <MeasureNode key={m.id} m={m} scale={doc.scale} selected={isSel('measure', m.id)} interactive={editable && selectTool} zoom={zoom} />
+                ))}
+              </Group>
+            )}
+          </Group>
         </Layer>
 
         {/* Surcouche : aperçus, repères, poignées */}
         {!clientPreview && (
           <Layer>
-            <Guides width={planW} height={planH} zoom={zoom} />
-            <DraftPreview draft={draft} zoom={zoom} wallThickness={wallThickness} />
-            {selectTool && selectedWall && !L.reconstructed.locked && <WallHandles wall={selectedWall} walls={doc.walls} zoom={zoom} />}
-            {selectTool && selectedDoor && wallsById.get(selectedDoor.wallId) && (
-              <OpeningHandle
-                kind="door"
-                id={selectedDoor.id}
-                wall={wallsById.get(selectedDoor.wallId)!}
-                t={selectedDoor.t}
-                width={selectedDoor.width}
-                zoom={zoom}
-              />
-            )}
-            {selectTool && selectedWindow && wallsById.get(selectedWindow.wallId) && (
-              <OpeningHandle
-                kind="window"
-                id={selectedWindow.id}
-                wall={wallsById.get(selectedWindow.wallId)!}
-                t={selectedWindow.t}
-                width={selectedWindow.width}
-                zoom={zoom}
-              />
-            )}
-            {selectTool && sel?.kind === 'symbol' && !L.symbols.locked && <SelectionTransformer ids={sel.ids} touch={isTouchDevice} />}
+            <Group key={`overlay-${resetKey}`}>
+              <Guides width={planW} height={planH} zoom={zoom} />
+              <DraftPreview draft={draft} zoom={zoom} wallThickness={wallThickness} />
+              {selectTool && selectedWall && !L.reconstructed.locked && <WallHandles wall={selectedWall} walls={doc.walls} zoom={zoom} />}
+              {selectTool && selectedDoor && wallsById.get(selectedDoor.wallId) && (
+                <OpeningHandle
+                  kind="door"
+                  id={selectedDoor.id}
+                  wall={wallsById.get(selectedDoor.wallId)!}
+                  t={selectedDoor.t}
+                  width={selectedDoor.width}
+                  zoom={zoom}
+                />
+              )}
+              {selectTool && selectedWindow && wallsById.get(selectedWindow.wallId) && (
+                <OpeningHandle
+                  kind="window"
+                  id={selectedWindow.id}
+                  wall={wallsById.get(selectedWindow.wallId)!}
+                  t={selectedWindow.t}
+                  width={selectedWindow.width}
+                  zoom={zoom}
+                />
+              )}
+              {selectTool && sel?.kind === 'symbol' && !L.symbols.locked && <SelectionTransformer ids={sel.ids} touch={isTouchDevice} />}
+              {selectTool && selectedLed && !L.symbols.locked && L.symbols.visible && (
+                <LedStripHandles strip={selectedLed} zoom={zoom} walls={doc.walls} touch={isTouchDevice} wallGap={ledWallGap} />
+              )}
+              {tool === 'led' && (
+                <LedDraftPreview
+                  points={ledPoints}
+                  cursor={ledCursor}
+                  zoom={zoom}
+                  width={doc.ledStrips.find((l) => l.id === ledExtendId)?.width ?? defaultLedWidth()}
+                  color={doc.ledStrips.find((l) => l.id === ledExtendId)?.color ?? LED_DEFAULT_COLOR}
+                  pixelsPerMeter={ppm}
+                />
+              )}
+            </Group>
           </Layer>
         )}
       </Stage>
