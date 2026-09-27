@@ -19,9 +19,11 @@ import {
   intermediateGlyph,
   lightGlyph,
   line,
+  homeScreenGlyph,
   motionGlyph,
   multiSocket,
   p,
+  presenceGlyph,
   pushButtonGlyph,
   recessedSpotGlyph,
   rect,
@@ -29,10 +31,12 @@ import {
   spotGlyph,
   squareLabel,
   switchGlyph,
+  switchedSocket,
   t,
   twoWayGlyph,
   wallBox,
   wallLightGlyph,
+  waterproofSocket,
   wifi,
 } from './symbolShapes';
 
@@ -54,13 +58,27 @@ const prise = categoryFactory('prises', { snapToWall: true, defaultSize: 34 });
 const PRISES: ElectricalSymbolDefinition[] = [
   prise({
     id: 'prise-16a',
-    name: 'Prise 16A',
+    name: 'Prise 2P+T 16A',
     subCategory: 'Prises de courant',
     shapes: socket(),
-    keywords: ['pc', '2p+t', 'courant', 'socket'],
+    keywords: ['pc', '2p+t', 'prise 16a', 'courant', 'socket', 'terre'],
     description: 'Prise de courant 2P+T 16 A',
   }),
-  prise({ id: 'prise-double-16a', name: 'Prise double 16A', subCategory: 'Prises de courant', shapes: multiSocket(2), keywords: ['double', 'pc'] }),
+  prise({
+    id: 'prise-double-16a',
+    name: 'Double prise 2P+T',
+    subCategory: 'Prises de courant',
+    shapes: multiSocket(2),
+    keywords: ['double', 'prise double 16a', 'pc', '2p+t'],
+  }),
+  prise({
+    id: 'prise-commandee',
+    name: 'Prise commandée',
+    subCategory: 'Prises de courant',
+    shapes: switchedSocket(),
+    keywords: ['commandée', 'commandee', 'interrupteur', 'lampe', 'pc', '2p+t'],
+    description: 'Prise 2P+T commandée par un interrupteur',
+  }),
   prise({ id: 'prise-triple', name: 'Prise triple', subCategory: 'Prises de courant', shapes: multiSocket(3), keywords: ['triple', 'pc', 'bloc'] }),
   prise({ id: 'prise-quadruple', name: 'Prise quadruple', subCategory: 'Prises de courant', shapes: multiSocket(4), keywords: ['quadruple', 'pc', 'bloc'] }),
   prise({
@@ -102,8 +120,8 @@ const PRISES: ElectricalSymbolDefinition[] = [
     id: 'prise-etanche',
     name: 'Prise étanche',
     subCategory: 'Prises extérieures',
-    shapes: [...socket(), c(0, -8, 13, 'none', 1.2)],
-    keywords: ['étanche', 'humide', 'sdb'],
+    shapes: waterproofSocket(),
+    keywords: ['étanche', 'etanche', 'humide', 'sdb', 'ip', '2p+t'],
   }),
   prise({
     id: 'prise-sol',
@@ -300,6 +318,23 @@ const COMMANDES: ElectricalSymbolDefinition[] = [
     subCategory: 'Régulation',
     shapes: [...wallBox('T°'), ...wifi(0, 12, 0.7)],
     keywords: ['thermostat', 'connecté', 'wifi'],
+  }),
+  cmd({
+    id: 'detecteur-mouvement',
+    name: 'Détecteur de mouvement',
+    subCategory: 'Détecteurs',
+    shapes: motionGlyph(),
+    keywords: ['mouvement', 'pir', 'détecteur', 'detecteur', 'automatique', 'éclairage', 'alarme', 'sécurité'],
+    description: 'Détecteur de mouvement mural (commande automatique)',
+  }),
+  cmd({
+    id: 'detecteur-presence',
+    name: 'Détecteur de présence',
+    subCategory: 'Détecteurs',
+    shapes: presenceGlyph(),
+    keywords: ['présence', 'presence', 'détecteur', 'detecteur', 'plafond', '360', 'automatique', 'éclairage'],
+    description: 'Détecteur de présence 360° (plafond)',
+    snapToWall: false,
   }),
 ];
 
@@ -735,21 +770,6 @@ const SECURITE: ElectricalSymbolDefinition[] = [
   }),
   sec({ id: 'detecteur-co', name: 'Détecteur CO', subCategory: 'Détection', shapes: circleLabel('CO', 13), keywords: ['co', 'monoxyde', 'détecteur'] }),
   sec({
-    id: 'detecteur-mouvement',
-    name: 'Détecteur mouvement',
-    subCategory: 'Détection',
-    shapes: motionGlyph(),
-    keywords: ['mouvement', 'pir', 'détecteur'],
-    snapToWall: true,
-  }),
-  sec({
-    id: 'detecteur-presence',
-    name: 'Détecteur présence',
-    subCategory: 'Détection',
-    shapes: [c(0, 0, 12, 'white'), c(0, 0, 7, 'none', 1.2), c(0, 0, 2.5, 'color', 1), t('P', 0, -17.5, 6)],
-    keywords: ['présence', 'détecteur', 'plafond'],
-  }),
-  sec({
     id: 'detecteur-ouverture',
     name: 'Détecteur ouverture',
     subCategory: 'Détection',
@@ -821,6 +841,17 @@ const SECURITE: ElectricalSymbolDefinition[] = [
 /* ------------------------------------------------------------------ */
 const dom = categoryFactory('domotique', { snapToWall: false, defaultSize: 32 });
 const DOMOTIQUE: ElectricalSymbolDefinition[] = [
+  dom({
+    id: 'ecran-domotique',
+    name: 'Écran domotique',
+    subCategory: 'Commandes',
+    shapes: homeScreenGlyph(),
+    keywords: ['écran', 'ecran', 'tactile', 'domotique', 'commande', 'mural', 'tablette', 'knx', 'centrale', 'supervision'],
+    description: 'Écran de commande domotique mural',
+    snapToWall: true,
+    role: 'switch',
+    defaultSize: 36,
+  }),
   dom({
     id: 'passerelle-domotique',
     name: 'Passerelle domotique',
@@ -1326,6 +1357,7 @@ export const QUICK_GROUPS = {
   prises: [
     'prise-16a',
     'prise-double-16a',
+    'prise-commandee',
     'prise-triple',
     'prise-20a',
     'prise-32a',
@@ -1333,6 +1365,7 @@ export const QUICK_GROUPS = {
     'prise-usb-ac',
     'prise-rj45',
     'prise-tv',
+    'prise-etanche',
     'prise-ext-ip44',
   ],
   commandes: [
@@ -1346,6 +1379,9 @@ export const QUICK_GROUPS = {
     'commande-volet',
     'cmd-thermostat',
     'inter-connecte',
+    'detecteur-mouvement',
+    'detecteur-presence',
+    'ecran-domotique',
   ],
   lumieres: [
     'point-lumineux',
