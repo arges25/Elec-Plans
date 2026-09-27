@@ -5,6 +5,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Annotation, Door, Point, Room, Wall, Window } from '../../types';
 import { docOps, useEditorStore } from '../../store/editorStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useGuideStore } from '../../store/guideStore';
 import { MAX_ZOOM, MIN_ZOOM, useViewStore } from '../../store/viewStore';
 import { promptDialog } from '../../store/dialogStore';
 import { toast } from '../../store/toastStore';
@@ -16,7 +17,7 @@ import { parseMeters, formatMeters } from '../../utils/format';
 import { AnnotationNode, ConnectionLine, DoorShape, MeasureNode, RoomLabel, WallShape, WindowShape } from './konva/PlanLayers';
 import { SymbolLabel, SymbolNode } from './konva/SymbolsLayer';
 import { DraftPreview, Guides, OpeningHandle, SelectionTransformer, WallHandles, type Draft } from './konva/Overlay';
-import { editorRuntime, stopActiveDrag } from './runtime';
+import { editorRuntime, isDuplicateActivation, stopActiveDrag } from './runtime';
 import { placeSymbolAt } from './editorActions';
 
 Konva.hitOnDragEnabled = true;
@@ -46,6 +47,8 @@ export function PlanStage() {
   }, []);
   const pointerDown = useRef(false);
   const pinch = useRef<{ dist: number; center: Point } | null>(null);
+  /** Incrémenté après un geste annulé : recrée les nœuds pour les remettre à leur place. */
+  const [resetKey, setResetKey] = useState(0);
   const fitted = useRef<string | null>(null);
 
   const plan = useEditorStore((s) => s.plan);
@@ -164,20 +167,59 @@ export function PlanStage() {
     return { x: t.clientX - r.left, y: t.clientY - r.top };
   };
 
+  /**
+   * Début d'un pincement (2 doigts) : zoom / déplacement du plan uniquement.
+   * Tout glisser d'élément en cours est ANNULÉ (l'élément reprend sa place) :
+   * zoomer ou déplacer le plan ne doit jamais déplacer un symbole.
+   */
+  const beginPinch = () => {
+    const stage = stageRef.current;
+    if (!stage || editorRuntime.pinching) return;
+    editorRuntime.pinching = true;
+    const st = useEditorStore.getState();
+    const hadGesture = Boolean(st.gestureStart);
+    if (hadGesture) st.cancelGesture();
+    stage.find((n: Konva.Node) => n.isDragging()).forEach((n) => n.stopDrag());
+    stopActiveDrag();
+    if (stage.isDragging()) stage.stopDrag();
+    useGuideStore.getState().setGuides(null);
+    if (hadGesture) setResetKey((k) => k + 1);
+    pointerDown.current = false;
+    const d = draftRef.current;
+    if (d && (d.kind === 'pen' || d.kind === 'rect' || d.kind === 'circle' || d.kind === 'arrow' || d.kind === 'room')) setDraft(null);
+  };
+
+  // Rotation de l'écran : un glisser en cours est annulé (aucun symbole ne bouge).
+  useEffect(() => {
+    const onRotate = () => {
+      const st = useEditorStore.getState();
+      if (!st.gestureStart) return;
+      st.cancelGesture();
+      stageRef.current?.find((n: Konva.Node) => n.isDragging()).forEach((n) => n.stopDrag());
+      stopActiveDrag();
+      useGuideStore.getState().setGuides(null);
+      setResetKey((k) => k + 1);
+    };
+    const orientation = typeof screen !== 'undefined' ? screen.orientation : undefined;
+    orientation?.addEventListener('change', onRotate);
+    window.addEventListener('orientationchange', onRotate);
+    return () => {
+      orientation?.removeEventListener('change', onRotate);
+      window.removeEventListener('orientationchange', onRotate);
+    };
+  }, []);
+
+  const onTouchStart = (e: KonvaEventObject<TouchEvent>) => {
+    if (e.evt.touches.length >= 2) beginPinch();
+  };
+
   const onTouchMove = (e: KonvaEventObject<TouchEvent>) => {
     const touches = e.evt.touches;
     if (touches.length !== 2) return;
     e.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
-    if (!editorRuntime.pinching) {
-      editorRuntime.pinching = true;
-      stopActiveDrag();
-      if (stage.isDragging()) stage.stopDrag();
-      pointerDown.current = false;
-      const d = draftRef.current;
-      if (d && (d.kind === 'pen' || d.kind === 'rect' || d.kind === 'circle' || d.kind === 'arrow' || d.kind === 'room')) setDraft(null);
-    }
+    beginPinch();
     const p1 = touchPoint(touches[0]);
     const p2 = touchPoint(touches[1]);
     const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
@@ -196,9 +238,10 @@ export function PlanStage() {
   };
 
   const onTouchEnd = (e: KonvaEventObject<TouchEvent>) => {
-    if (e.evt.touches.length < 2 && pinch.current) {
+    if (e.evt.touches.length < 2 && (pinch.current || editorRuntime.pinching)) {
+      const zoomed = Boolean(pinch.current);
       pinch.current = null;
-      syncView();
+      if (zoomed) syncView();
       // Laisse passer le « tap » fantôme de fin de pincement
       setTimeout(() => {
         editorRuntime.pinching = false;
@@ -322,6 +365,8 @@ export function PlanStage() {
 
   const onStageTap = async (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (clientPreview || editorRuntime.pinching) return;
+    // Un toucher = un seul traitement (tap + click sont émis pour le même toucher)
+    if (isDuplicateActivation('stage', stageRef.current?.getPointerPosition() ?? null)) return;
     const st = useEditorStore.getState();
     const p = worldPointer();
     if (!p) return;
@@ -464,6 +509,7 @@ export function PlanStage() {
         height={size.h}
         draggable={selectTool || clientPreview}
         onWheel={onWheel}
+        onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onPointerDown={onPointerDown}
@@ -517,7 +563,7 @@ export function PlanStage() {
 
         {/* Plan reconstruit : murs, ouvertures, pièces */}
         {L.reconstructed.visible && (
-          <Layer listening={editable && !L.reconstructed.locked && selectTool}>
+          <Layer key={`plan-${resetKey}`} listening={editable && !L.reconstructed.locked && selectTool}>
             {doc.walls.map((w) => (
               <WallShape key={w.id} wall={w} selected={isSel('wall', w.id)} interactive={editable && selectTool} />
             ))}
@@ -536,7 +582,7 @@ export function PlanStage() {
         )}
 
         {/* Liaisons, symboles, annotations, mesures */}
-        <Layer>
+        <Layer key={`content-${resetKey}`}>
           {L.connections.visible && (
             <Group listening={editable && !L.connections.locked && selectTool}>
               {doc.connections.map((c) => {
@@ -564,7 +610,7 @@ export function PlanStage() {
                   key={s.id}
                   symbol={s}
                   selected={isSel('symbol', s.id)}
-                  draggable={editable && selectTool && !L.symbols.locked}
+                  draggable={editable && selectTool && !L.symbols.locked && isSel('symbol', s.id)}
                   listening={editable && !L.symbols.locked && (selectTool || tool === 'connect')}
                   connectSource={connectSourceId === s.id}
                 />

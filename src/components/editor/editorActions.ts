@@ -56,9 +56,17 @@ export function openSymbolProperties(id: string): void {
 }
 
 /** Crée un symbole posé à une position (aimanté au mur si pertinent). */
+let lastPlacement: { type: string; x: number; y: number; t: number } | null = null;
+
 export function placeSymbolAt(symbolType: string, point: { x: number; y: number }): PlacedSymbol | null {
   const st = useEditorStore.getState();
   if (!st.plan || !st.projectId) return null;
+  // Sécurité anti-doublon : 1 appui = 1 symbole, même si l'événement arrive deux fois.
+  const now = Date.now();
+  if (lastPlacement && lastPlacement.type === symbolType && now - lastPlacement.t < 300 && Math.hypot(lastPlacement.x - point.x, lastPlacement.y - point.y) < 3) {
+    return null;
+  }
+  lastPlacement = { type: symbolType, x: point.x, y: point.y, t: now };
   const settings = getSettings();
   const def = getSymbolDefinition(symbolType);
   const scale = settings.defaultSymbolScale;

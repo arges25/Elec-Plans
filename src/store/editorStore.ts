@@ -83,6 +83,8 @@ interface EditorState {
   beginGesture: () => void;
   updateTransient: (updater: (doc: PlanDocument) => PlanDocument) => void;
   endGesture: () => void;
+  /** Annule le geste en cours (ex. pincement pendant un glisser) : rien n'est déplacé. */
+  cancelGesture: () => void;
   undo: () => void;
   redo: () => void;
 
@@ -170,6 +172,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   beginGesture: () => set({ gestureStart: get().doc }),
   updateTransient: (updater) => {
+    // Hors geste (ou geste annulé), aucune modification transitoire n'est appliquée.
+    if (!get().gestureStart) return;
     const next = updater(get().doc);
     if (next !== get().doc) set({ doc: next });
   },
@@ -177,6 +181,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { gestureStart, doc, past } = get();
     if (gestureStart && gestureStart !== doc) set({ past: [...past, gestureStart].slice(-HISTORY_LIMIT), future: [], gestureStart: null });
     else set({ gestureStart: null });
+  },
+  cancelGesture: () => {
+    const { gestureStart } = get();
+    if (gestureStart) set({ doc: gestureStart, gestureStart: null });
   },
   undo: () => {
     const { past, doc, future } = get();

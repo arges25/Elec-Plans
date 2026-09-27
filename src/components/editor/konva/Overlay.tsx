@@ -245,7 +245,9 @@ export function SelectionTransformer({ ids, touch }: { ids: string[]; touch: boo
       borderStroke={ORANGE}
       borderDash={[5, 4]}
       rotateAnchorOffset={touch ? 34 : 24}
-      padding={4}
+      // Au doigt, les poignées restent à l'extérieur du symbole : même petit à l'écran,
+      // son centre reste libre pour le saisir et le déplacer.
+      padding={touch ? 16 : 4}
       ignoreStroke
       boundBoxFunc={(oldBox, newBox) => (Math.abs(newBox.width) < 12 || Math.abs(newBox.height) < 12 ? oldBox : newBox)}
     />
