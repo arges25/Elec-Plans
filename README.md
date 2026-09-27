@@ -34,7 +34,9 @@ MG Elec & Plans est une application web mobile (PWA installable) destinée aux �
 | **Import du plan** | Photo (appareil photo), scan (redressement + noir et blanc), image JPG / JPEG / PNG / WEBP, PDF (choix de la page), plan vierge « Dessiner rapidement », croquis → plan. Images réduites à ≈ 2400 px et compressées en WebP (JPEG si WebP indisponible) |
 | **Scanner** | 4 poignées aux coins avec loupe, redressement de perspective, rotation 90° et rotation fine, luminosité, contraste, niveaux de gris, noir et blanc (seuillage adaptatif), amélioration automatique, détection automatique des bords (OpenCV.js), réinitialisation |
 | **Éditeur** | React-Konva : pincer pour zoomer (20 % → 800 %), 2 doigts pour déplacer, molette, boutons +, −, adapter à l’écran, 100 %. Murs (tracé point par point, aimantation angles / extrémités), portes, fenêtres, pièces, textes, flèches, cercles, rectangles, crayon, mesures, échelle (point A, point B, distance réelle) |
-| **Symboles** | 154 symboles génériques vectoriels (prises, réseau, commandes, éclairage, ventilation, chauffage, électroménager, buanderie, sécurité, domotique, portail / extérieur, tableau, divers), recherche, filtres, favoris, récents. Déplacer, tourner, redimensionner, dupliquer (+1 décalé de 20 px), supprimer, propriétés (pièce, circuit, n°, disjoncteur, section, hauteur, commentaire, couleur) |
+| **Symboles** | 156 symboles génériques vectoriels (prises, réseau, commandes, éclairage, ventilation, chauffage, électroménager, buanderie, sécurité, domotique, portail / extérieur, tableau, divers), recherche, filtres, favoris, récents. Prises dessinées comme sur les plans de bâtiment (2P+T, double, commandée, étanche, RJ45, TV) ; détecteurs de mouvement / de présence et écran domotique mural. Déplacer, tourner, redimensionner, dupliquer (+1 décalé de 20 px), supprimer, propriétés (pièce, circuit, n°, disjoncteur, section, hauteur, commentaire, couleur) |
+| **Symboles fixes** | Un symbole posé reste fixe : un toucher le sélectionne (contour orange), il se déplace alors au doigt ; toucher ailleurs le désélectionne. Déplacer le plan, zoomer ou tourner l’écran ne déplace jamais un symbole. 1 toucher = 1 symbole (aucun doublon) |
+| **Bande LED** | Outil *Bande LED* : toucher le départ, glisser le doigt, relâcher pour poser un angle, continuer le long des murs (accroche sur la face des murs et dans les angles) ; toucher le départ ferme le contour (tour d’une chambre). Ensuite : poignées aux extrémités et aux angles (allonger / raccourcir), « + » pour ajouter un angle, double toucher pour retirer un point, déplacement d’un bloc, Prolonger, couleur, texte. Longueur en mètres (si échelle), légende et PDF |
 | **Aimantation** | Prises, interrupteurs, appliques… s’aimantent au mur le plus proche et s’orientent automatiquement (distance réglable, 15 px par défaut, vibration si disponible) |
 | **Placement rapide** | Mode répétition / « placer plusieurs » : choisir un symbole puis toucher le plan autant de fois que nécessaire, bouton TERMINER |
 | **Liaisons** | Bouton RELIER : courbes de Bézier pointillées qui suivent les symboles. Types Commande (orange), Circuit (bleu), Information (gris) ; couleur, épaisseur, pointillés, courbure ; groupes « Commande N » (va-et-vient 1 + 2 → même plafonnier) |
@@ -44,7 +46,7 @@ MG Elec & Plans est une application web mobile (PWA installable) destinée aux �
 | **Aperçu client** | Plein écran sans grille ni poignées : plan, symboles, liaisons, légende, titre ; partage d’une image PNG |
 | **Export PDF** | A4 / A3, portrait / paysage, marges, titre, chantier, client, date, adresse, légende, notes, liaisons, plan original, plan reconstruit, logo. **PDF vectoriel** (pdf-lib). Aperçu, export, impression, partage |
 | **Tableau** | Rangées, circuits (n°, nom, protection, section, modules, pictogramme), différentiels, réserves, import des circuits depuis le plan, renumérotation |
-| **Étiquettes** | Legrand Drivia 13, Schneider Resi9 13, Hager Gamma+ 13 et modèles personnalisés ; texte ajusté automatiquement (réduction, 2 lignes max, jamais hors de la case) ; édition par étiquette |
+| **Étiquettes** | Éditeur simple : réglages à gauche, **aperçu en direct** à droite (en haut sur téléphone). Marque (Legrand, Schneider, Hager), modèle (13 ou 18 modules, modèles personnalisés), largeur d’un module, hauteur, modules par ligne, nombre de lignes, texte de chaque case, taille et alignement du texte, ajouter / supprimer une case, largeur d’une case, dupliquer une ligne, réorganiser les cases. Texte ajusté automatiquement (réduction, 2 lignes max, jamais hors de la case) |
 | **Impression** | Impression système (AirPrint / Wi-Fi), PDF, aperçu taille réelle avec règle graduée, calibration imprimante (bande test 100 mm), profils d’imprimante, Bluetooth direct expérimental (Web Bluetooth + ESC/POS) |
 | **Hors connexion** | Après la première ouverture : chantiers, plan, symboles, liaisons, étiquettes, PDF fonctionnent sans internet (service worker) |
 
@@ -71,7 +73,7 @@ npm run preview   # sert le build : http://localhost:4173/mg-elec-plans/
 npm run test      # tests Vitest
 ```
 
-Les tests couvrent notamment : largeur des étiquettes, conversion mm → points PDF, modèles 13 modules Legrand / Schneider / Hager, calibration imprimante, sérialisation des projets, liaisons entre symboles, aimantation aux murs, historique annuler / rétablir, chemins SVG vectoriels, encodage ESC/POS, homographie du scanner et reconstruction de croquis (avec et sans OpenCV).
+Les tests couvrent notamment : largeur des étiquettes, conversion mm → points PDF, modèles 13 modules Legrand / Schneider / Hager, calibration imprimante, sérialisation des projets, liaisons entre symboles, aimantation aux murs, historique annuler / rétablir, chemins SVG vectoriels, encodage ESC/POS, homographie du scanner, reconstruction de croquis (avec et sans OpenCV), bandes LED (accroche aux murs, angles, fermeture, longueur, export PDF), nouveaux symboles et éditeur d’étiquettes (cases, lignes, réorganisation, réglages du modèle).
 
 ---
 
@@ -168,10 +170,13 @@ La **seule source** des dimensions est [`src/data/electricalPanelTemplates.ts`](
 | Legrand Drivia 13 | 13 | 17,5 mm | 227,5 mm |
 | Schneider Resi9 13 | 13 | 18 mm | 234 mm |
 | Hager Gamma+ 13 | 13 | 17,5 mm | 227,5 mm |
+| Legrand Drivia 18 | 18 | 17,5 mm | 315 mm |
+| Schneider Resi9 18 | 18 | 18 mm | 324 mm |
+| Hager Gamma+ 18 | 18 | 17,5 mm | 315 mm |
 
 La **hauteur d’étiquette (`labelHeightMm`) est une valeur indicative** (12 mm) et non une cote constructeur vérifiée : mesurez votre porte-étiquette.
 
-Dans l’application (*Étiquettes tableau → Modèles*) : choisir le fabricant, modifier toutes les dimensions (nombre de modules, largeur module, largeur totale, hauteur, marges, espacement, police, taille, bordure, pictogramme, numéro, alignement, 2 lignes max.), **dupliquer un modèle** pour créer un modèle personnalisé (ex. « Legrand perso garage »), réinitialiser un modèle fabricant.
+L’écran **Étiquettes** du tableau permet de tout régler en direct (marque, modèle, largeur d’un module, hauteur, modules par ligne, lignes, texte, taille, alignement, cases). Dans l’application (*Étiquettes tableau → Modèles*) : choisir le fabricant, modifier toutes les dimensions (nombre de modules, largeur module, largeur totale, hauteur, marges, espacement, police, taille, bordure, pictogramme, numéro, alignement, 2 lignes max.), **dupliquer un modèle** pour créer un modèle personnalisé (ex. « Legrand perso garage »), réinitialiser un modèle fabricant.
 
 ---
 

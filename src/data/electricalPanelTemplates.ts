@@ -75,7 +75,43 @@ export const HAGER_GAMMA_13 = baseTemplate({
   modulePitchMm: 17.5,
 });
 
-export const BUILTIN_PANEL_TEMPLATES: PanelTemplate[] = [LEGRAND_DRIVIA_13, SCHNEIDER_RESI9_13, HAGER_GAMMA_13];
+export const LEGRAND_DRIVIA_18 = baseTemplate({
+  id: 'legrand-drivia-18',
+  name: 'Legrand Drivia 18',
+  brand: 'Legrand',
+  modulesPerRow: 18,
+  modulePitchMm: 17.5,
+});
+
+export const SCHNEIDER_RESI9_18 = baseTemplate({
+  id: 'schneider-resi9-18',
+  name: 'Schneider Resi9 18',
+  brand: 'Schneider',
+  modulesPerRow: 18,
+  modulePitchMm: 18,
+});
+
+export const HAGER_GAMMA_18 = baseTemplate({
+  id: 'hager-gamma-18',
+  name: 'Hager Gamma+ 18',
+  brand: 'Hager',
+  modulesPerRow: 18,
+  modulePitchMm: 17.5,
+});
+
+export const BUILTIN_PANEL_TEMPLATES: PanelTemplate[] = [
+  LEGRAND_DRIVIA_13,
+  LEGRAND_DRIVIA_18,
+  SCHNEIDER_RESI9_13,
+  SCHNEIDER_RESI9_18,
+  HAGER_GAMMA_13,
+  HAGER_GAMMA_18,
+];
+
+/** Modèle intégré d'origine (pour « Réinitialiser »), ou undefined pour un modèle personnalisé. */
+export function builtinTemplate(id: string): PanelTemplate | undefined {
+  return BUILTIN_PANEL_TEMPLATES.find((t) => t.id === id);
+}
 
 export const DEFAULT_TEMPLATE_ID = LEGRAND_DRIVIA_13.id;
 
