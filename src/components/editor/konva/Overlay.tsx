@@ -238,13 +238,15 @@ export function SelectionTransformer({ ids, touch }: { ids: string[]; touch: boo
       enabledAnchors={ids.length === 1 ? ['top-left', 'top-right', 'bottom-left', 'bottom-right'] : []}
       rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
       rotationSnapTolerance={6}
-      anchorSize={touch ? 18 : 11}
-      anchorCornerRadius={touch ? 9 : 3}
+      anchorSize={touch ? 22 : 11}
+      anchorCornerRadius={touch ? 11 : 3}
+      // Au doigt : zone de toucher agrandie autour de chaque poignée (≈ 40 px)
+      anchorStyleFunc={touch ? (anchor) => anchor.hitStrokeWidth(18) : undefined}
       anchorStroke={ORANGE}
       anchorFill="#ffffff"
       borderStroke={ORANGE}
       borderDash={[5, 4]}
-      rotateAnchorOffset={touch ? 34 : 24}
+      rotateAnchorOffset={touch ? 40 : 24}
       // Au doigt, les poignées restent à l'extérieur du symbole : même petit à l'écran,
       // son centre reste libre pour le saisir et le déplacer.
       padding={touch ? 16 : 4}

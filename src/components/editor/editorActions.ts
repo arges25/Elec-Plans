@@ -63,7 +63,12 @@ export function placeSymbolAt(symbolType: string, point: { x: number; y: number 
   if (!st.plan || !st.projectId) return null;
   // Sécurité anti-doublon : 1 appui = 1 symbole, même si l'événement arrive deux fois.
   const now = Date.now();
-  if (lastPlacement && lastPlacement.type === symbolType && now - lastPlacement.t < 300 && Math.hypot(lastPlacement.x - point.x, lastPlacement.y - point.y) < 3) {
+  if (
+    lastPlacement &&
+    lastPlacement.type === symbolType &&
+    now - lastPlacement.t < 300 &&
+    Math.hypot(lastPlacement.x - point.x, lastPlacement.y - point.y) < 3
+  ) {
     return null;
   }
   lastPlacement = { type: symbolType, x: point.x, y: point.y, t: now };

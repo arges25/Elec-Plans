@@ -42,13 +42,7 @@ const example = [
 describe('Éditeur d’étiquettes', () => {
   it('exemple : disjoncteurs 1 à 5 → cases de l’aperçu dans l’ordre', () => {
     const [strip] = buildLabelStrips(panel.rows, example, [], LEGRAND_DRIVIA_13);
-    expect(strip.cells.map((c) => `${c.number} ${c.text}`)).toEqual([
-      '1 Éclairage cuisine',
-      '2 Prises cuisine',
-      '3 Four',
-      '4 Lave-vaisselle',
-      '5 Chauffe-eau',
-    ]);
+    expect(strip.cells.map((c) => `${c.number} ${c.text}`)).toEqual(['1 Éclairage cuisine', '2 Prises cuisine', '3 Four', '4 Lave-vaisselle', '5 Chauffe-eau']);
     expect(strip.cells[4].xMm).toBe(70);
   });
 

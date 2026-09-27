@@ -322,7 +322,7 @@ export function LedStripHandles({ strip, zoom, walls, touch, wallGap }: LedHandl
               fill="#fff7ed"
               stroke={ORANGE}
               strokeWidth={2 / zoom}
-              hitStrokeWidth={14 / zoom}
+              hitStrokeWidth={(touch ? 22 : 14) / zoom}
               shadowColor="#000"
               shadowBlur={4 / zoom}
               shadowOpacity={0.2}

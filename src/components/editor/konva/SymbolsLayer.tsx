@@ -185,12 +185,19 @@ export const SymbolNode = memo(function SymbolNode({ symbol, selected, draggable
         <>
           {/* Contour de sélection bien visible : halo + anneau orange */}
           <Circle radius={27} fill="rgba(249,115,22,0.14)" stroke="rgba(249,115,22,0.35)" strokeWidth={8} strokeScaleEnabled={false} listening={false} />
-          <Circle radius={27} stroke="#f97316" strokeWidth={2.5} strokeScaleEnabled={false} listening={false} shadowColor="#f97316" shadowBlur={6} shadowOpacity={0.6} />
+          <Circle
+            radius={27}
+            stroke="#f97316"
+            strokeWidth={2.5}
+            strokeScaleEnabled={false}
+            listening={false}
+            shadowColor="#f97316"
+            shadowBlur={6}
+            shadowOpacity={0.6}
+          />
         </>
       )}
-      {connectSource && (
-        <Circle radius={25} stroke="#f97316" strokeWidth={3} strokeScaleEnabled={false} fill="rgba(249,115,22,0.15)" listening={false} />
-      )}
+      {connectSource && <Circle radius={25} stroke="#f97316" strokeWidth={3} strokeScaleEnabled={false} fill="rgba(249,115,22,0.15)" listening={false} />}
       <SymbolShapes shapes={def.shapes} color={color} />
     </Group>
   );
