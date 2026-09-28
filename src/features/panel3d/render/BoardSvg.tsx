@@ -1,9 +1,9 @@
 import { memo, type Ref } from 'react';
-import type { EnclosureModel, PanelProject, PlacedDevice } from '../types';
+import type { BoardDoc, EnclosureModel, PlacedDevice } from '../types';
 import { brandName, getProduct } from '../data/catalog';
 import { DEVICE_FACE_MM, boardGeometry, moduleX, type BoardGeometry } from '../engine/geometry';
 import { allLabelZones, freeIntervals } from '../engine/placement';
-import { capacityOf, type Selection } from '../store/panelEditorStore';
+import { capacityOf, displayLabel, type Selection } from '../store/panelEditorStore';
 import { DeviceFace } from './DeviceFace';
 import { LabelCell } from './LabelCell';
 import { BoardDefs } from './BoardDefs';
@@ -25,7 +25,7 @@ export interface DragPreview {
 }
 
 interface Props {
-  project: PanelProject;
+  doc: BoardDoc;
   enclosure: EnclosureModel;
   uid?: string;
   selection?: Selection;
@@ -119,7 +119,7 @@ function DeviceAt({ d, geo, uid, faded }: { d: PlacedDevice; geo: BoardGeometry;
 }
 
 export const BoardSvg = memo(function BoardSvg({
-  project,
+  doc: project,
   enclosure,
   uid = 'b3d',
   selection = null,
@@ -223,10 +223,11 @@ export const BoardSvg = memo(function BoardSvg({
               y={r.labelY}
               w={w}
               h={r.labelH}
-              label={z.label}
+              label={displayLabel(project, z)}
               icon={z.icon}
               style={z.style}
               fontPt={project.print.fontSizePt}
+              refText={project.print.showRef ? z.circuitRef : undefined}
               uid={`${uid}-z${z.leaderId}`}
               preciseMeasure={preciseMeasure}
               placeholder={interactive ? '+' : null}

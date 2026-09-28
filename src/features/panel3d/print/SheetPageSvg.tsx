@@ -19,9 +19,11 @@ interface Props {
   preciseMeasure?: boolean;
   /** Aperçu écran : largeur CSS libre au lieu des millimètres. */
   screenWidth?: string;
+  /** Repère du circuit dans le coin de l'étiquette. */
+  showRef?: boolean;
 }
 
-export function SheetPageSvg({ layout, strips, pageIndex, header, fontPt, scale, uid, preciseMeasure = true, screenWidth }: Props) {
+export function SheetPageSvg({ layout, strips, pageIndex, header, fontPt, scale, uid, preciseMeasure = true, screenWidth, showRef = true }: Props) {
   const W = layout.pageWidthMm;
   const H = layout.pageHeightMm;
   const h = layout.labelHeightMm;
@@ -50,7 +52,20 @@ export function SheetPageSvg({ layout, strips, pageIndex, header, fontPt, scale,
             {piece.zones.map((z) => (
               <g key={z.leaderId}>
                 <rect x={z.x} y={0} width={z.w} height={h} fill="none" stroke="#111827" strokeWidth={0.2} />
-                <LabelCell x={z.x} y={0} w={z.w} h={h} label={z.label} icon={z.icon} style={z.style} fontPt={fontPt} uid={`${uid}-${piece.row}-${piece.part}-${z.leaderId}`} preciseMeasure={preciseMeasure} />
+                <LabelCell
+                  x={z.x}
+                  y={0}
+                  w={z.w}
+                  h={h}
+                  label={z.label}
+                  icon={z.icon}
+                  style={z.style}
+                  fontPt={fontPt}
+                  uid={`${uid}-${piece.row}-${piece.part}-${z.leaderId}`}
+                  preciseMeasure={preciseMeasure}
+                  refText={showRef ? z.circuitRef : undefined}
+                  color="#000000"
+                />
               </g>
             ))}
             <rect x={0} y={0} width={piece.widthMm} height={h} fill="none" stroke="#6b7280" strokeWidth={0.25} strokeDasharray="1.2 0.8" />

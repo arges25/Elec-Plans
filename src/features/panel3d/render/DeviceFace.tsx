@@ -297,6 +297,30 @@ export const DeviceFace = memo(function DeviceFace({ product, uid, width: w }: P
     case 'socket':
       body = <SocketFace brand={b} uid={uid} w={w} />;
       break;
+    case 'isolator':
+      body = (
+        <>
+          {[0.27, 0.73].map((k) => (
+            <g key={k}>
+              <rect x={w * k - 3.4} y={12} width={6.8} height={18} rx={1.4} fill="#2b2f34" />
+              <rect x={w * k - 2.8} y={12.8} width={5.6} height={9} rx={1.2} fill="#d32f2f" />
+            </g>
+          ))}
+          <T x={cx} y={39.5} size={3}>{`${product.rating ?? ''}A`}</T>
+        </>
+      );
+      break;
+    case 'domotic':
+      body = (
+        <>
+          <Led cx={w * 0.3} cy={14} color="#3b82f6" />
+          <Led cx={w * 0.5} cy={14} color="#22c55e" />
+          <Led cx={w * 0.7} cy={14} color="#f59e0b" />
+          <rect x={cx - 4} y={20} width={8} height={6} rx={1.4} fill="#cfd4d9" stroke="#8d949b" strokeWidth={0.3} />
+          <T x={cx} y={38} size={2.3} weight={600}>Domotique</T>
+        </>
+      );
+      break;
     case 'blank':
       body = (
         <>

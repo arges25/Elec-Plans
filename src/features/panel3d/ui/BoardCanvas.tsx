@@ -1,43 +1,44 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Maximize, Minus, Plus, X } from 'lucide-react';
 import { getEnclosure, getProduct } from '../data/catalog';
-import { boardGeometry, hitTest } from '../engine/geometry';
 import { dropTarget, nearestFreeStart } from '../engine/placement';
-import { BoardSvg, boardViewBox, type DragPreview } from '../render/BoardSvg';
+import { BoardSvg, type DragPreview } from '../render/BoardSvg';
+import { SchemaSvg } from '../render/SchemaSvg';
 import { capacityOf, placeMessage, usePanelEditor } from '../store/panelEditorStore';
-import { useDragStore, type DragTarget } from './dragStore';
+import { placeOrAsk, useDragStore, type DragTarget } from './dragStore';
+import { layoutFor, type ViewBox } from './canvasLayouts';
+import { useUiStore } from './uiStore';
 import { toast } from '../../../store/toastStore';
 
 /**
- * Tableau interactif :
+ * Tableau interactif (vue schéma ou vue coffret, mêmes données) :
  * – un doigt : toucher court = sélection, appui long sur un appareil = déplacement ;
  * – glisser sur le fond ou deux doigts = déplacement de la vue, pincer = zoom ;
  * – molette / boutons +/− : zoom (jamais de déplacement d'appareil).
+ * Toucher un repère ou une étiquette ouvre l'édition directe du circuit.
  */
 
 interface Props {
   onDeviceTap?: (id: string) => void;
-  onZoneTap?: (leaderId: string) => void;
+  onSlotTap?: (row: number, start: number) => void;
   onEmptyTap?: () => void;
 }
 
-interface ViewBox {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+interface TapTarget {
+  deviceId?: string;
+  zoneId?: string;
+  refId?: string;
+  slot?: { row: number; start: number };
 }
 
 type Gesture =
-  | { kind: 'pending'; pointerId: number; pointerType: string; startX: number; startY: number; deviceId?: string; zoneId?: string; timer?: number }
+  | ({ kind: 'pending'; pointerId: number; pointerType: string; startX: number; startY: number; timer?: number } & TapTarget)
   | { kind: 'pan'; pointerId: number; lastX: number; lastY: number }
   | { kind: 'pinch'; lastDist: number; lastMidX: number; lastMidY: number }
   | { kind: 'drag'; pointerId: number }
   | { kind: 'idle' };
 
-interface PendingTap {
-  deviceId?: string;
-  zoneId?: string;
+interface PendingTap extends TapTarget {
   clientX: number;
   clientY: number;
   timer: number;
@@ -49,23 +50,28 @@ const TAP_FALLBACK_MS = 500;
 const TOUCH_SLOP_PX = 9;
 const MOUSE_SLOP_PX = 4;
 
-export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
-  const project = usePanelEditor((s) => s.project)!;
+function targetOf(el: Element): TapTarget {
+  const deviceId = el.closest('[data-device-id]')?.getAttribute('data-device-id') ?? undefined;
+  if (deviceId) return { deviceId };
+  const refId = el.closest('[data-ref-id]')?.getAttribute('data-ref-id') ?? undefined;
+  if (refId) return { refId };
+  const zoneId = el.closest('[data-zone-id]')?.getAttribute('data-zone-id') ?? undefined;
+  if (zoneId) return { zoneId };
+  const free = el.closest('[data-free-row]');
+  if (free) return { slot: { row: Number(free.getAttribute('data-free-row')), start: Number(free.getAttribute('data-free-start')) } };
+  return {};
+}
+
+export function BoardCanvas({ onDeviceTap, onSlotTap, onEmptyTap }: Props) {
+  const doc = usePanelEditor((s) => s.doc)!;
   const selection = usePanelEditor((s) => s.selection);
   const armedId = usePanelEditor((s) => s.armedProductId);
   const moveId = usePanelEditor((s) => s.moveDeviceId);
   const drag = useDragStore((s) => s.drag);
-  const enclosure = getEnclosure(project.enclosureId)!;
-  const geo = useMemo(() => boardGeometry(enclosure), [enclosure]);
-  const fullVb = useMemo(() => boardViewBox(geo), [geo]);
-
-  // Vue rapprochée sur les rangées (téléphone) : appareils plus grands au doigt
-  const rowsVb = useMemo(() => {
-    const first = geo.rowGeo[0];
-    const last = geo.rowGeo[geo.rowGeo.length - 1];
-    const pad = 8;
-    return { x: geo.windowX - pad, y: first.labelY - pad, w: geo.windowWidth + pad * 2, h: last.openY + last.openH - first.labelY + pad * 2 };
-  }, [geo]);
+  const focusRequest = useUiStore((s) => s.focusRequest);
+  const enclosure = getEnclosure(doc.enclosureId)!;
+  const layout = useMemo(() => layoutFor(doc.view, enclosure), [doc.view, enclosure]);
+  const fullVb = layout.fullVb;
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const [vb, setVbState] = useState<ViewBox>(fullVb);
@@ -74,19 +80,24 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
     vbRef.current = v;
     setVbState(v);
   }, []);
+  // Cadrage initial : tout le tableau, ou une vue lisible sur téléphone
   useLayoutEffect(() => {
-    const narrow = (wrapRef.current?.clientWidth ?? 1000) < 640;
-    setVb(narrow ? rowsVb : fullVb);
-  }, [fullVb, rowsVb, setVb]);
+    const el = wrapRef.current;
+    const cw = el?.clientWidth ?? 1000;
+    const ch = el?.clientHeight ?? 800;
+    setVb(layout.initialVb(cw, ch));
+  }, [layout, setVb]);
 
   const [hover, setHover] = useState<DragTarget | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<Gesture>({ kind: 'idle' });
   const pendingTap = useRef<PendingTap | null>(null);
-  const projectRef = useRef(project);
-  projectRef.current = project;
+  const docRef = useRef(doc);
+  docRef.current = doc;
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
-  /* ---------- Conversions écran ↔ millimètres ---------- */
+  /* ---------- Conversions écran ↔ unités du dessin ---------- */
   const scaleAndRect = () => {
     const rect = wrapRef.current!.getBoundingClientRect();
     const v = vbRef.current;
@@ -98,12 +109,13 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
     return { x: v.x + v.w / 2 + (clientX - (rect.left + rect.width / 2)) / s, y: v.y + v.h / 2 + (clientY - (rect.top + rect.height / 2)) / s };
   };
   const clampVb = (v: ViewBox): ViewBox => {
-    const w = Math.min(Math.max(v.w, fullVb.w / 10), fullVb.w * 1.6);
+    const f = layoutRef.current.fullVb;
+    const w = Math.min(Math.max(v.w, f.w / 12), f.w * 1.6);
     const h = (v.h / v.w) * w;
     let cx = v.x + v.w / 2;
     let cy = v.y + v.h / 2;
-    cx = Math.min(Math.max(cx, fullVb.x), fullVb.x + fullVb.w);
-    cy = Math.min(Math.max(cy, fullVb.y), fullVb.y + fullVb.h);
+    cx = Math.min(Math.max(cx, f.x), f.x + f.w);
+    cy = Math.min(Math.max(cy, f.y), f.y + f.h);
     return { x: cx - w / 2, y: cy - h / 2, w, h };
   };
   const zoomAt = (clientX: number, clientY: number, factor: number) => {
@@ -125,30 +137,38 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
     zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
   };
 
+  // Recentrage demandé (liste des circuits, recherche)
+  useEffect(() => {
+    if (!focusRequest || !wrapRef.current) return;
+    const d = docRef.current.devices.find((x) => x.id === focusRequest.deviceId);
+    const box = d ? layoutRef.current.deviceBox(d) : null;
+    if (!box) return;
+    const v = vbRef.current;
+    const visible = box.x >= v.x && box.x + box.w <= v.x + v.w && box.y >= v.y && box.y + box.h <= v.y + v.h;
+    if (!visible) setVb(clampVb({ ...v, x: box.x + box.w / 2 - v.w / 2, y: box.y + box.h / 2 - v.h / 2 }));
+  }, [focusRequest]);
+
   /* ---------- Cible de dépôt (aimantée sur la grille) ---------- */
-  const locate = useCallback(
-    (clientX: number, clientY: number, width: number, ignoreId?: string): DragTarget | null => {
-      const wrap = wrapRef.current;
-      if (!wrap) return null;
-      const rect = wrap.getBoundingClientRect();
-      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
-      const p = toMm(clientX, clientY);
-      const hit = hitTest(geo, p.x, p.y);
-      if (!hit || hit.module < -2 || hit.module > geo.modulesPerRow + 2) return null;
-      const pj = projectRef.current;
-      const cap = capacityOf(pj);
-      // Appareils de largeur entière : calés sur le module ; demi-modules : au pas de 0,5
-      const wanted = Number.isInteger(width) ? Math.round(hit.module - width / 2) : hit.module - width / 2;
-      let t = dropTarget(pj.devices, cap, hit.row, wanted, width, ignoreId);
-      if (!t.check.ok) {
-        // Aimantation vers la place libre la plus proche (≤ 1 module)
-        const near = nearestFreeStart(pj.devices, cap, hit.row, width, wanted, ignoreId);
-        if (near !== null && Math.abs(near - wanted) <= 1) t = dropTarget(pj.devices, cap, hit.row, near, width, ignoreId);
-      }
-      return { row: t.row, start: t.start, ok: t.check.ok, message: placeMessage(t.check) };
-    },
-    [geo],
-  );
+  const locate = useCallback((clientX: number, clientY: number, width: number, ignoreId?: string): DragTarget | null => {
+    const wrap = wrapRef.current;
+    if (!wrap) return null;
+    const rect = wrap.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const p = toMm(clientX, clientY);
+    const hit = layoutRef.current.hit(p.x, p.y);
+    if (!hit || hit.module < -2 || hit.module > layoutRef.current.modulesPerRow + 2) return null;
+    const d = docRef.current;
+    const cap = capacityOf(d);
+    // Appareils de largeur entière : calés sur le module ; demi-modules : au pas de 0,5
+    const wanted = Number.isInteger(width) ? Math.round(hit.module - width / 2) : hit.module - width / 2;
+    let t = dropTarget(d.devices, cap, hit.row, wanted, width, ignoreId);
+    if (!t.check.ok) {
+      // Aimantation vers la place libre la plus proche (≤ 1 module)
+      const near = nearestFreeStart(d.devices, cap, hit.row, width, wanted, ignoreId);
+      if (near !== null && Math.abs(near - wanted) <= 1) t = dropTarget(d.devices, cap, hit.row, near, width, ignoreId);
+    }
+    return { row: t.row, start: t.start, ok: t.check.ok, message: placeMessage(t.check), occupied: t.check.reason === 'overlap' || t.check.reason === 'row-full' };
+  }, []);
   useEffect(() => {
     useDragStore.getState().setLocator(locate);
     return () => useDragStore.getState().setLocator(null);
@@ -160,14 +180,14 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0022));
-      zoomAt(e.clientX, e.clientY, factor);
+      if (e.ctrlKey || !e.shiftKey) zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0022)));
+      else panBy(-e.deltaY, 0);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [fullVb]);
+  }, []);
 
-  /* ---------- Placement / déplacement par toucher ---------- */
+  /* ---------- Poser / déplacer d'un toucher ---------- */
   const placeAt = (clientX: number, clientY: number): boolean => {
     const editor = usePanelEditor.getState();
     if (editor.armedProductId) {
@@ -175,31 +195,24 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
       if (!product) return true;
       const t = locate(clientX, clientY, product.modules);
       if (!t) return false;
-      if (!t.ok) toast.error(t.message);
-      else {
-        const res = editor.addDevice(product.id, t.row, t.start);
-        if (!res.ok && res.message) toast.error(res.message);
-      }
+      if (!t.ok && !t.occupied) toast.error(t.message);
+      else placeOrAsk({ action: 'add', productId: product.id, row: t.row, start: t.start, width: product.modules });
       return true;
     }
     if (editor.moveDeviceId) {
-      const d = projectRef.current.devices.find((x) => x.id === editor.moveDeviceId);
+      const d = docRef.current.devices.find((x) => x.id === editor.moveDeviceId);
       if (!d) return true;
       const t = locate(clientX, clientY, d.moduleWidth, d.id);
       if (!t) return false;
-      if (!t.ok) toast.error(t.message);
-      else {
-        const res = editor.moveDevice(d.id, t.row, t.start);
-        if (res.ok) editor.setMoveDevice(null);
-        else if (res.message) toast.error(res.message);
-      }
+      if (!t.ok && !t.occupied) toast.error(t.message);
+      else placeOrAsk({ action: 'move', productId: d.productId, deviceId: d.id, row: t.row, start: t.start, width: d.moduleWidth });
       return true;
     }
     return false;
   };
 
   const startDeviceDrag = (deviceId: string, pointerId: number, clientX: number, clientY: number) => {
-    const d = projectRef.current.devices.find((x) => x.id === deviceId);
+    const d = docRef.current.devices.find((x) => x.id === deviceId);
     if (!d) return;
     navigator.vibrate?.(12);
     gesture.current = { kind: 'drag', pointerId };
@@ -223,12 +236,11 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
       return;
     }
     if (pointers.current.size > 2) return;
-    const el = e.target as Element;
-    const deviceId = el.closest('[data-device-id]')?.getAttribute('data-device-id') ?? undefined;
-    const zoneId = deviceId ? undefined : (el.closest('[data-zone-id]')?.getAttribute('data-zone-id') ?? undefined);
-    const g: Gesture = { kind: 'pending', pointerId: e.pointerId, pointerType: e.pointerType, startX: e.clientX, startY: e.clientY, deviceId, zoneId };
-    if (deviceId && e.pointerType !== 'mouse') {
+    const target = targetOf(e.target as Element);
+    const g: Gesture = { kind: 'pending', pointerId: e.pointerId, pointerType: e.pointerType, startX: e.clientX, startY: e.clientY, ...target };
+    if (target.deviceId && e.pointerType !== 'mouse') {
       const { pointerId, clientX, clientY } = e;
+      const deviceId = target.deviceId;
       g.timer = window.setTimeout(() => {
         if (gesture.current === g) startDeviceDrag(deviceId, pointerId, clientX, clientY);
       }, LONG_PRESS_MS);
@@ -245,7 +257,7 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
       const width = editor.armedProductId
         ? getProduct(editor.armedProductId)?.modules
         : editor.moveDeviceId
-          ? projectRef.current.devices.find((d) => d.id === editor.moveDeviceId)?.moduleWidth
+          ? docRef.current.devices.find((d) => d.id === editor.moveDeviceId)?.moduleWidth
           : undefined;
       setHover(width ? locate(e.clientX, e.clientY, width, editor.moveDeviceId ?? undefined) : null);
       return;
@@ -279,8 +291,31 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
       gesture.current = { ...g, lastX: e.clientX, lastY: e.clientY };
       return;
     }
-    if (g.kind === 'drag' && g.pointerId === e.pointerId) {
-      useDragStore.getState().update(e.clientX, e.clientY);
+    if (g.kind === 'drag' && g.pointerId === e.pointerId) useDragStore.getState().update(e.clientX, e.clientY);
+  };
+
+  const runTap = (tap: PendingTap) => {
+    if (pendingTap.current !== tap) return;
+    pendingTap.current = null;
+    window.clearTimeout(tap.timer);
+    if (placeAt(tap.clientX, tap.clientY)) return;
+    const editor = usePanelEditor.getState();
+    const ui = useUiStore.getState();
+    if (tap.deviceId) {
+      editor.select({ kind: 'device', id: tap.deviceId });
+      onDeviceTap?.(tap.deviceId);
+    } else if (tap.refId) {
+      editor.select({ kind: 'device', id: tap.refId });
+      ui.openQuickEdit(tap.refId, 'ref');
+    } else if (tap.zoneId) {
+      editor.select({ kind: 'device', id: tap.zoneId });
+      ui.openQuickEdit(tap.zoneId, 'label');
+    } else if (tap.slot) {
+      editor.select({ kind: 'slot', row: tap.slot.row, start: tap.slot.start });
+      onSlotTap?.(tap.slot.row, tap.slot.start);
+    } else {
+      editor.select(null);
+      onEmptyTap?.();
     }
   };
 
@@ -304,30 +339,12 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
       if (!commit) return;
       // Le toucher est traité sur l'événement « click » qui suit : sinon ce click
       // tomberait sur le panneau qui vient de s'ouvrir sous le doigt.
-      const tap: PendingTap = { deviceId: g.deviceId, zoneId: g.zoneId, clientX: e.clientX, clientY: e.clientY, timer: 0 };
+      const tap: PendingTap = { deviceId: g.deviceId, zoneId: g.zoneId, refId: g.refId, slot: g.slot, clientX: e.clientX, clientY: e.clientY, timer: 0 };
       tap.timer = window.setTimeout(() => runTap(tap), TAP_FALLBACK_MS);
       pendingTap.current = tap;
       return;
     }
     if (g.kind === 'pan' && g.pointerId === e.pointerId) gesture.current = { kind: 'idle' };
-  };
-
-  const runTap = (tap: PendingTap) => {
-    if (pendingTap.current !== tap) return;
-    pendingTap.current = null;
-    window.clearTimeout(tap.timer);
-    if (placeAt(tap.clientX, tap.clientY)) return;
-    const editor = usePanelEditor.getState();
-    if (tap.deviceId) {
-      editor.select({ kind: 'device', id: tap.deviceId });
-      onDeviceTap?.(tap.deviceId);
-    } else if (tap.zoneId) {
-      editor.select({ kind: 'zone', id: tap.zoneId });
-      onZoneTap?.(tap.zoneId);
-    } else {
-      editor.select(null);
-      onEmptyTap?.();
-    }
   };
 
   useEffect(
@@ -340,7 +357,7 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
 
   // Silhouette : glisser en cours, sinon survol en mode « poser » / « déplacer »
   const armedProduct = armedId ? getProduct(armedId) : undefined;
-  const movingDevice = moveId ? project.devices.find((d) => d.id === moveId) : undefined;
+  const movingDevice = moveId ? doc.devices.find((d) => d.id === moveId) : undefined;
   let preview: DragPreview | null = null;
   if (drag) preview = { productId: drag.productId, width: drag.width, ignoreId: drag.ignoreId, target: drag.target };
   else if (armedProduct) preview = { productId: armedProduct.id, width: armedProduct.modules, target: hover };
@@ -352,11 +369,24 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
       ? `Touchez le nouvel emplacement de ${getProduct(movingDevice.productId)?.shortName ?? 'l’appareil'}`
       : null;
 
+  const common = {
+    uid: 'edit',
+    selection,
+    drag: preview,
+    movingId: drag?.ignoreId ?? moveId,
+    interactive: true,
+    viewBox: `${vb.x} ${vb.y} ${vb.w} ${vb.h}`,
+    width: '100%',
+    height: '100%',
+    className: 'block h-full w-full',
+  };
+
   return (
-    <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-slate-100 to-slate-200">
+    <div className={`relative h-full w-full overflow-hidden ${doc.view === 'schema' ? 'bg-slate-100' : 'bg-gradient-to-b from-slate-100 to-slate-200'}`}>
       <div
         ref={wrapRef}
         data-testid="board-canvas"
+        data-view={doc.view}
         className="absolute inset-0"
         style={{ touchAction: 'none' }}
         onPointerDown={onPointerDown}
@@ -369,19 +399,7 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <BoardSvg
-          project={project}
-          enclosure={enclosure}
-          uid="edit"
-          selection={selection}
-          drag={preview}
-          movingId={drag?.ignoreId ?? moveId}
-          interactive
-          viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
-          width="100%"
-          height="100%"
-          className="block h-full w-full"
-        />
+        {doc.view === 'schema' ? <SchemaSvg doc={doc} enclosure={enclosure} {...common} /> : <BoardSvg doc={doc} enclosure={enclosure} {...common} />}
       </div>
 
       {bannerText && (
@@ -414,4 +432,3 @@ export function BoardCanvas({ onDeviceTap, onZoneTap, onEmptyTap }: Props) {
     </div>
   );
 }
-

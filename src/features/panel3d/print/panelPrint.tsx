@@ -1,13 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { PanelProject } from '../types';
-import { brandName, getEnclosure, productRatingText } from '../data/catalog';
-import { REFERENCE_NOT_PROVIDED } from '../constants';
-import { buildBom } from '../engine/bom';
-import { boardGeometry } from '../engine/geometry';
-import { BoardSvg, boardViewBox } from '../render/BoardSvg';
+import type { BoardDoc } from '../types';
 import { printHtmlDocument } from '../../../services/printerService/systemPrint';
 import { CALIBRATION_LENGTH_MM, layoutSheet, loadCorrectionPercent, panelHeader, percentToScale } from './labelSheet';
 import { SheetPageSvg } from './SheetPageSvg';
+import { SchemaPageSvg, commonOrientation } from './schemaSheet';
 
 /**
  * Impression système (AirPrint, Wi-Fi, imprimante par défaut) en millimètres
@@ -19,54 +15,37 @@ function esc(s: string): string {
 }
 
 /** Pages d'étiquettes (balisage HTML des pages). */
-export function labelPagesHtml(p: PanelProject): { html: string; pageWidthMm: number; pageHeightMm: number } {
+export function labelPagesHtml(doc: BoardDoc): { html: string; pageWidthMm: number; pageHeightMm: number; pages: number } {
   const scale = percentToScale(loadCorrectionPercent());
-  const layout = layoutSheet(p, scale);
-  const header = panelHeader(p);
+  const layout = layoutSheet(doc, scale);
+  const header = panelHeader(doc);
   const html = layout.pages
     .map(
       (strips, i) =>
         `<div class="page">${renderToStaticMarkup(
-          <SheetPageSvg layout={layout} strips={strips} pageIndex={i} header={header} fontPt={p.print.fontSizePt} scale={scale} uid={`pl${i}`} />,
+          <SheetPageSvg layout={layout} strips={strips} pageIndex={i} header={header} fontPt={doc.print.fontSizePt} scale={scale} uid={`pl${i}`} showRef={doc.print.showRef} />,
         )}</div>`,
     )
     .join('');
-  return { html, pageWidthMm: layout.pageWidthMm, pageHeightMm: layout.pageHeightMm };
+  return { html, pageWidthMm: layout.pageWidthMm, pageHeightMm: layout.pageHeightMm, pages: layout.pages.length };
 }
 
-/** Page de synthèse : vue du tableau + nomenclature (format de page des étiquettes). */
-function summaryPageHtml(p: PanelProject, pageWidthMm: number, pageHeightMm: number): string {
-  const enc = getEnclosure(p.enclosureId)!;
-  const geo = boardGeometry(enc);
-  const vb = boardViewBox(geo);
-  const landscape = pageWidthMm > pageHeightMm;
-  const boardBoxW = landscape ? 150 : 190;
-  const boardBoxH = landscape ? 170 : 150;
-  const k = Math.min(boardBoxW / vb.w, boardBoxH / vb.h);
-  const board = renderToStaticMarkup(<BoardSvg project={p} enclosure={enc} uid="prt" width={`${vb.w * k}mm`} height={`${vb.h * k}mm`} />);
-  const rows = buildBom(p.devices)
-    .map(
-      (l) =>
-        `<tr><td style="text-align:right">${l.quantity}</td><td>${esc(brandName(l.product.brand))}</td><td>${esc(l.product.reference ?? REFERENCE_NOT_PROVIDED)}</td><td>${esc(
-          l.product.fullName,
-        )}</td><td>${esc(productRatingText(l.product) ?? '—')}</td><td style="text-align:right">${String(l.product.modules).replace('.', ',')}</td></tr>`,
-    )
-    .join('');
-  return `<div class="page" style="padding:10mm;box-sizing:border-box;font-size:9pt;color:#111827">
-<div style="font-size:14pt;font-weight:700">${esc(p.name)}</div>
-<div style="color:#4b5563;margin-bottom:3mm">${esc(brandName(enc.brand))} · ${esc(enc.family)} · ${esc(enc.name)} · Réf. ${esc(enc.reference ?? REFERENCE_NOT_PROVIDED)}</div>
-<div style="display:flex;gap:6mm;align-items:flex-start;${landscape ? '' : 'flex-direction:column'}">
-<div style="position:relative;flex:none">${board.replace('<svg ', '<svg style="position:static;display:block" ')}</div>
-<table style="border-collapse:collapse;width:100%;font-size:8pt"><thead><tr style="background:#f1f5f9"><th style="text-align:right">Qté</th><th>Fabricant</th><th>Référence</th><th>Désignation</th><th>Calibre</th><th>Mod.</th></tr></thead><tbody>${rows}</tbody></table>
-</div>
-<style>td,th{border-bottom:0.2mm solid #e5e7eb;padding:1mm 1.5mm;text-align:left}</style>
-</div>`;
+/** « Imprimer étiquettes » : uniquement les bandeaux nécessaires, à l'échelle réelle. */
+export function printLabels(doc: BoardDoc): void {
+  const pages = labelPagesHtml(doc);
+  if (!pages.pages) throw new Error('Aucune étiquette à imprimer : posez d’abord des appareils');
+  printHtmlDocument(pages.html, { pageWidthMm: pages.pageWidthMm, pageHeightMm: pages.pageHeightMm, title: `Étiquettes — ${esc(doc.title)}` });
 }
 
-export function printLabels(p: PanelProject, withSummary: boolean): void {
-  const pages = labelPagesHtml(p);
-  const body = (withSummary ? summaryPageHtml(p, pages.pageWidthMm, pages.pageHeightMm) : '') + pages.html;
-  printHtmlDocument(body, { pageWidthMm: pages.pageWidthMm, pageHeightMm: pages.pageHeightMm, title: `Étiquettes — ${esc(p.name)}` });
+/** « Imprimer schéma tableau » : une page A4 par tableau. */
+export function printSchema(docs: BoardDoc[]): void {
+  if (!docs.length) return;
+  const orientation = commonOrientation(docs);
+  const date = new Date();
+  const html = docs.map((d, i) => `<div class="page">${renderToStaticMarkup(<SchemaPageSvg doc={d} orientation={orientation} uid={`ps${i}`} date={date} />)}</div>`).join('');
+  const W = orientation === 'portrait' ? 210 : 297;
+  const H = orientation === 'portrait' ? 297 : 210;
+  printHtmlDocument(html, { pageWidthMm: W, pageHeightMm: H, title: `Schéma — ${esc(docs[0].projectName)}` });
 }
 
 /** Règle de contrôle de 50 mm (imprimée avec la correction actuelle). */

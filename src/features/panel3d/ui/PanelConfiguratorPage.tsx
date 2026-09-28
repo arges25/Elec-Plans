@@ -12,9 +12,13 @@ import { BoardEditorTab } from './BoardEditorTab';
 import { BomTab } from './BomTab';
 import { ConfigTab } from './ConfigTab';
 import { DragGhost } from './DragGhost';
+import { BoardSwitcher } from './BoardSwitcher';
+import { EditorDialogs } from './EditorDialogs';
+import { FullscreenPreview } from './FullscreenPreview';
 import { LabelsTab } from './LabelsTab';
 import { PrintTab } from './PrintTab';
 import { useDragStore } from './dragStore';
+import { useUiStore } from './uiStore';
 
 const TABS: { id: EditorTab; label: string; short: string }[] = [
   { id: 'config', label: 'Configuration', short: 'Config.' },
@@ -84,7 +88,7 @@ function useShortcuts() {
       } else if (mod && e.key.toLowerCase() === 'y' && !isTyping(e.target)) {
         e.preventDefault();
         ed.redo();
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isTyping(e.target) && ed.selection?.kind === 'device' && ed.tab === 'board') {
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isTyping(e.target) && ed.selection?.kind === 'device' && ed.tab === 'board' && !useUiStore.getState().quickEdit) {
         e.preventDefault();
         ed.removeDevice(ed.selection.id);
       } else if (e.key === 'Escape' && !isTyping(e.target)) {
@@ -119,7 +123,7 @@ export default function PanelConfiguratorPage() {
       }
       const ed = usePanelEditor.getState();
       ed.load(p);
-      ed.setTab(p.devices.length ? 'board' : 'config');
+      ed.setTab(p.boards.some((b) => b.devices.length) ? 'board' : 'config');
     });
     return () => {
       alive = false;
@@ -146,7 +150,8 @@ export default function PanelConfiguratorPage() {
     );
   }
 
-  const enc = getEnclosure(project.enclosureId);
+  const board = project.boards.find((b) => b.id === project.activeBoardId) ?? project.boards[0];
+  const enc = getEnclosure(board.enclosureId);
   const ed = usePanelEditor.getState();
   const rename = async () => {
     const name = await promptDialog({ title: 'Nom du projet', label: 'Nom', defaultValue: project.name });
@@ -163,7 +168,7 @@ export default function PanelConfiguratorPage() {
             <Pencil className="size-3.5 shrink-0 opacity-70" aria-hidden />
           </button>
         }
-        subtitle={enc ? `${brandName(enc.brand)} · ${enc.family} · ${enc.name}` : undefined}
+        subtitle={enc ? `${board.title} · ${brandName(enc.brand)} · ${enc.family} · ${enc.rows} × ${enc.modulesPerRow} modules` : undefined}
         actions={
           <>
             <span className="hidden sm:inline">
@@ -178,6 +183,7 @@ export default function PanelConfiguratorPage() {
           </>
         }
       />
+      <BoardSwitcher />
       <nav className="shrink-0 border-b border-slate-200 bg-white" aria-label="Étapes">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 py-1.5" role="tablist">
           {TABS.map((t, i) => (
@@ -211,6 +217,8 @@ export default function PanelConfiguratorPage() {
         {tab === 'print' && <PrintTab />}
       </main>
       <DragGhost />
+      <EditorDialogs />
+      <FullscreenPreview />
     </div>
   );
 }

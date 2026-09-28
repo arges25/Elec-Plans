@@ -60,6 +60,8 @@ export type DeviceKind =
   | 'relay'
   | 'heating-control'
   | 'energy-meter'
+  | 'isolator'
+  | 'domotic'
   | 'socket'
   | 'blank'
   | 'reserve';
@@ -114,10 +116,17 @@ export interface PlacedDevice {
   /** Premier module occupé (0 = gauche, pas de 0,5). */
   startModule: number;
   moduleWidth: number;
+  /** Repère du circuit (au-dessus de l'appareil), texte libre : « 1 », « 14 », « 5a »… */
+  circuitRef: string;
+  /** Désignation du circuit (sous l'appareil) : « Plaque induction », « PC1 »… */
   label: string;
+  /** Nom court facultatif (« PC CUISINE ») ; jamais imposé. */
+  shortLabel: string;
   icon: string | null;
   /** Style propre à cette étiquette (sinon style du projet). */
   labelStyle: LabelStyle | null;
+  /** Informations complémentaires libres. */
+  notes: string;
   /** Étiquette fusionnée avec la zone de l'appareil précédent (même rangée, contigu). */
   mergedWithPrev: boolean;
   /** Appareils partageant la même zone d'étiquette (tenu à jour automatiquement). */
@@ -131,22 +140,63 @@ export interface PrintSettings {
   labelHeightMm: number;
   /** Taille du texte (pt). */
   fontSizePt: number;
+  /** Repère imprimé dans le coin de l'étiquette. */
+  showRef: boolean;
 }
 
-/** Projet de tableau enregistré. */
-export interface PanelProject {
+/**
+ * Totaux de rangée : aucun calcul n'est fait tant que l'utilisateur n'a pas
+ * choisi une règle explicite.
+ */
+export type TotalsRule = { kind: 'none' } | { kind: 'sum' } | { kind: 'sum-coef'; coef: number };
+
+export type BoardView = 'schema' | 'coffret';
+
+/** Un tableau (principal, garage, étage…) d'un projet. */
+export interface Board {
+  id: string;
+  /** Titre affiché en haut : « TABLEAU PRINCIPAL ». */
+  title: string;
+  brand: Brand;
+  enclosureId: string;
+  devices: PlacedDevice[];
+  /** Réserve minimale souhaitée (% de modules libres), null = aucune alerte. */
+  minFreePercent: number | null;
+}
+
+/** Réglages d'affichage communs aux tableaux d'un projet. */
+export interface DisplaySettings {
+  /** text = Professionnel, both = Visuel, icon = Icône. */
+  labelStyle: LabelStyle;
+  /** Texte affiché sous l'appareil : désignation ou nom court (si renseigné). */
+  labelText: 'long' | 'short';
+  showModuleNumbers: boolean;
+  showAllBrands: boolean;
+  totals: TotalsRule;
+  /** Proposer « Quel circuit ? » à la pose d'un disjoncteur. */
+  askCircuitOnDrop: boolean;
+  view: BoardView;
+}
+
+/** Projet enregistré : un ou plusieurs tableaux. */
+export interface PanelProject extends DisplaySettings {
   id: string;
   name: string;
   /** Chantier associé (facultatif). */
   projectId: string | null;
-  brand: Brand;
-  enclosureId: string;
-  devices: PlacedDevice[];
-  labelStyle: LabelStyle;
-  showModuleNumbers: boolean;
-  showAllBrands: boolean;
+  boards: Board[];
+  activeBoardId: string;
   print: PrintSettings;
   createdAt: number;
   updatedAt: number;
-  version: 1;
+  version: 2;
+}
+
+/**
+ * Vue « à plat » du tableau actif (tableau + réglages du projet) : c'est
+ * l'objet manipulé par le rendu, le moteur, la nomenclature et l'impression.
+ */
+export interface BoardDoc extends Board, DisplaySettings {
+  projectName: string;
+  print: PrintSettings;
 }

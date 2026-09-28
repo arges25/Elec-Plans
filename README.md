@@ -46,7 +46,7 @@ MG Elec & Plans est une application web mobile (PWA installable) destinée aux �
 | **Légende** | Construite automatiquement à partir des symboles présents (avec quantités) |
 | **Aperçu client** | Plein écran sans grille ni poignées : plan, symboles, liaisons, légende, titre ; partage d’une image PNG |
 | **Export PDF** | A4 / A3, portrait / paysage, marges, titre, chantier, client, date, adresse, légende, notes, liaisons, plan original, plan reconstruit, logo. **PDF vectoriel** (pdf-lib). Aperçu, export, impression, partage |
-| **Configurateur 3D** | Tableau électrique en 3D légère : coffret Legrand Drivia, Schneider Resi9 ou Hager Gamma+ à l’échelle (dimensions officielles), rails DIN au pas de 18 mm, bibliothèque d’appareils par marque, glisser-déposer aimanté, étiquettes **au-dessus** des appareils avec texte + icône, nomenclature, impression en millimètres réels et PDF. Voir [Configurateur de tableau 3D](#configurateur-de-tableau-3d) |
+| **Configurateur de tableau** | Vue technique « Schéma tableau » (repère au-dessus, appareil Legrand / Schneider / Hager avec son calibre, étiquette dessous, modules libres en gris) et « Vue coffret », plusieurs tableaux par projet, références officielles, glisser-déposer sur la grille DIN, numérotation, réserves, totaux configurables, impression du schéma et des étiquettes, PDF, PNG. Voir [Configurateur de tableau 3D](#configurateur-de-tableau-3d) |
 | **Tableau** | Rangées, circuits (n°, nom, protection, section, modules, pictogramme), différentiels, réserves, import des circuits depuis le plan, renumérotation |
 | **Étiquettes** | Éditeur simple : réglages à gauche, **aperçu en direct** à droite (en haut sur téléphone). Marque (Legrand, Schneider, Hager), modèle (13 ou 18 modules, modèles personnalisés), largeur d’un module, hauteur, modules par ligne, nombre de lignes, texte de chaque case, taille et alignement du texte, ajouter / supprimer une case, largeur d’une case, dupliquer une ligne, réorganiser les cases. Texte ajusté automatiquement (réduction, 2 lignes max, jamais hors de la case) |
 | **Impression** | Impression système (AirPrint / Wi-Fi), PDF, aperçu taille réelle avec règle graduée, calibration imprimante (bande test 100 mm), profils d’imprimante, Bluetooth direct expérimental (Web Bluetooth + ESC/POS) |
@@ -56,17 +56,35 @@ MG Elec & Plans est une application web mobile (PWA installable) destinée aux �
 
 ## Configurateur de tableau 3D
 
-Accès : carte **Tableaux électriques 3D** de l’accueil (`/tableaux`), ou bouton **Configurateur 3D** de l’écran *Tableau électrique* d’un chantier. L’ancien éditeur d’étiquettes (`/labels`) reste disponible tant que le configurateur est en cours de déploiement.
+Accès : carte **Tableaux électriques 3D** de l’accueil (`/tableaux`), ou bouton **Configurateur 3D** de l’écran *Tableau électrique* d’un chantier. L’ancien éditeur d’étiquettes (`/labels`) reste disponible.
 
-Cinq onglets :
+Un **projet** (ex. *Maison Dupont*) contient un ou plusieurs **tableaux** (*TABLEAU PRINCIPAL*, *TABLEAU GARAGE*, *TABLEAU ÉTAGE*…) : barre des tableaux sous l’en-tête (ajouter, renommer, dupliquer, supprimer). Projets enregistrés automatiquement, sauvegarde / ouverture d’un fichier `.mgtableau`.
 
-1. **Configuration** : Fabricant → Gamme → 13 / 18 modules (seulement si la base contient cette largeur) → 1 à 4 rangées (vignettes du coffret). Option *Afficher tous les fabricants* (désactivée par défaut : les marques ne sont jamais mélangées). Fiche du coffret avec bouton **i** (source officielle, date de vérification).
-2. **Édition du tableau** : bibliothèque à gauche, tableau au centre, propriétés à droite (sur téléphone : tableau plein écran + panneaux coulissants). Glisser un appareil sur un rail : les places libres s’affichent en bleu, la silhouette est verte si l’emplacement est libre, rouge sinon (« Emplacement déjà occupé », « Rangée complète »…). Appareil posé : **Déplacer, Dupliquer, Supprimer, Modifier, Étiquette**. Dupliquer / vider une rangée, organisation automatique, numérotation des modules.
-3. **Étiquettes** : bandeaux agrandis rangée par rangée ; toucher une étiquette, saisir le nom du circuit : l’icône est proposée automatiquement (« Four », « Lave-linge », « VMC »…) et reste modifiable (plus de 50 icônes). Styles *Texte*, *Icône*, *Icône + texte* (par défaut). Fusionner / séparer des étiquettes d’appareils voisins. **Entrée** passe à l’étiquette suivante.
-4. **Nomenclature** : quantité, fabricant, référence, désignation, calibre, largeur modulaire (appareils identiques regroupés).
-5. **Aperçu & impression** : étiquettes à l’échelle réelle (millimètres, jamais des pixels), impression système, **PDF complet** (fiche projet / marque / gamme / référence, vue du tableau, nomenclature, liste des circuits, étiquettes) ou **PDF étiquettes uniquement**, calibration par **règle de 50 mm** (correction en % enregistrée sur l’appareil).
+### Deux vues, une seule source de données
 
-Gestes : un doigt = sélectionner (toucher court), **appui long** = déplacer un appareil, glisser sur le fond ou deux doigts = déplacer la vue, pincer = zoom, boutons + / − / *voir tout*. Le zoom et le défilement ne déplacent jamais un appareil. Annuler / rétablir pour toutes les actions (Ctrl+Z / Ctrl+Y), sauvegarde automatique, projets nommés.
+- **Schéma tableau** (vue principale, technique, face à face) : pour chaque rangée, le **repère** du circuit au-dessus de l’appareil (texte libre : 1, 14, 5, X…), l’appareil de la marque avec son calibre, l’**étiquette** (désignation) dessous, les **modules libres en gris**, les **réserves** hachurées « RÉSERVE ». À gauche de chaque rangée : RANGÉE n, total selon la règle choisie, calibre du différentiel, modules libres. En haut : *TABLEAU PRINCIPAL - 3 rangées de 13 modules - 20,5 % libre = 8 modules* et le détail (modules utilisés / libres / réservés, alerte si la réserve minimale choisie n’est pas respectée).
+- **Vue coffret** : le même tableau dans son coffret (3D légère, porte-étiquettes, rail DIN).
+
+Ajouter, déplacer ou modifier un appareil dans une vue le met à jour dans l’autre.
+
+### Construire le tableau
+
+- **Bibliothèque** par marque (Protection, Disjoncteurs, Commande & automatismes, Prises modulaires, Obturateurs & réserves) : glisser-déposer sur la grille (places libres en vert, silhouette verte ou rouge), ou toucher l’appareil puis l’emplacement, ou « + » (premier emplacement libre).
+- **Emplacement occupé** : *Décaler les appareils suivants*, *Remplacer l’emplacement* ou *Annuler*. Supprimer laisse l’emplacement libre ; *Compacter la rangée* resserre les appareils.
+- **Quel circuit ?** à la pose d’un disjoncteur (facultatif, désactivable) : Four, Plaque, Lave-vaisselle, Prises, Éclairage… ou *Autre…* pour écrire son propre texte.
+- **Édition directe** : toucher le texte sous l’appareil ou le repère au-dessus ouvre *Nom du circuit / Repère / Nom court / Icône*.
+- **Fiche de l’appareil** : type, marque, gamme, référence, calibre (modifiable), largeur (modifiable si non fixée par une référence), rangée, position, repère, étiquette, icône, source officielle ; actions *Modifier, Déplacer, Dupliquer, Supprimer, Étiquette*.
+- **Emplacement libre** : *Réserver* (1 module ou tout l’espace libre) ou poser directement un disjoncteur courant.
+- **Circuits** : liste « 01 — Plaque induction — 32 A » avec recherche (taper *Four* sélectionne le circuit) ; *Numéroter les circuits* (1, 2, 3…) ou repères libres non séquentiels.
+- **Étiquettes** : modes *Professionnel* (texte), *Visuel* (icône + texte), *Icône* ; icône facultative ; nom court proposé (« Prises cuisine » → *PC CUISINE*, jamais imposé) ; texte long : réduction légère puis retour à la ligne (3 lignes), jamais de texte minuscule.
+- **Totaux de rangée** : aucun calcul par défaut ; règle au choix *Somme des calibres* ou *Somme × coefficient* (ex. 0,5). L’application n’en déduit aucune conformité.
+- Tablette / ordinateur : bibliothèque (ou circuits) à gauche, tableau au centre, propriétés à droite. Téléphone : tableau pleine largeur à une échelle lisible (défilement horizontal), boutons *Appareil*, *Circuits*, *Modifier*. Toucher court = sélection, appui long = déplacement, pincer / molette = zoom ; le zoom et le défilement ne déplacent jamais un appareil. Annuler / rétablir pour toutes les opérations.
+
+### Impression et exports
+
+- **Imprimer schéma tableau** (ce tableau ou tous) : aperçu à l’échelle avec *Zoom, Imprimer, PDF, Annuler*.
+- **Imprimer étiquettes** : uniquement les bandeaux nécessaires, dimensions réelles du support (largeur de module, hauteur, taille du texte, repère dans le coin), texte noir sur fond blanc, calibration par règle de 50 mm.
+- **PNG haute résolution** du schéma, **dossier PDF complet** (schémas, nomenclature, liste des circuits, étiquettes), sauvegarde du projet.
 
 ### Données fabricants (jamais inventées)
 
@@ -85,7 +103,15 @@ Règles appliquées par le code :
 - une dimension ou une référence absente de la base s’affiche **« Données techniques non renseignées »** (ou « Référence non renseignée ») ; aucune valeur approchée, aucune extrapolation, aucune reprise des cotes d’une autre marque ;
 - sans dimensions officielles (Resi9), le coffret est dessiné en **vue schématique** (grille modulaire seule, sans cote) ;
 - en 18 modules, seules les configurations vérifiées sont proposées (4 rangées) ;
-- les appareils modulaires utilisent la largeur modulaire standard (1 module = 18 mm, disjoncteur 1 module, différentiel 2 modules, prise 2P+T 2,5 modules) ; leurs références fabricant restent à `null` tant qu’elles ne sont pas vérifiées sur la documentation officielle.
+- appareils : références **vérifiées sur le site officiel** de chaque fabricant (page produit enregistrée dans `sourceUrl`) :
+
+| Appareil | Legrand | Schneider Electric | Hager |
+| --- | --- | --- | --- |
+| Disjoncteur 1P+N courbe C 1 module | DNX³ 4500 : 406771 (2 A), 406772 (6 A), 406773 (10 A), 406774 (16 A), 406775 (20 A), 406776 (25 A), 406777 (32 A), 406873 (40 A) | Resi9 XP : R9PFC602, R9PFC606, R9PFC610, R9PFC616, R9PFC620, R9PFC625, R9PFC632 | MFN702, MFN706, MFN710, MFN716, MFN720, MFN725, MFN732 |
+| Interrupteur différentiel 2P 30 mA | DX³-ID : 411632 (40 A AC), 411617 (40 A A), 411506 (63 A AC), 411556 (63 A A), 411592 (63 A F) | R9PRA263 (63 A A), R9PRF263 (63 A Fsi) | CDC764F (63 A AC), CDA765F (63 A A), CDF763F (63 A F) |
+| Prise modulaire 2P+T 16 A | 004280 (2,5 modules) | R9PCS616 | SNS216 |
+
+- les autres appareils (télérupteur, contacteurs, parafoudre, horloge…) gardent la largeur modulaire standard (1 module = 18 mm) et la mention « Référence non renseignée » tant qu’ils ne sont pas vérifiés ; leur largeur reste modifiable dans la fiche.
 
 Pour compléter la base : ajouter l’entrée dans le JSON de la marque en renseignant la source officielle (site du fabricant, puis fiche PDF, puis catalogue officiel — jamais une marketplace), puis lancer `npm test` (les tests vérifient notamment qu’aucune dimension n’est copiée d’une marque à l’autre).
 
@@ -263,11 +289,12 @@ src/
   features/
     panel3d/       configurateur de tableau 3D :
       data/          bases fabricants (JSON par marque) + catalogue
-      engine/        moteur de placement (grille 0,5 module), géométrie en mm, nomenclature
-      render/        rendu SVG « 3D légère » (coffret, faces d'appareils par marque, icônes)
+      engine/        placement (grille 0,5 module), opérations (décaler, compacter, numéroter,
+                     occupation, totaux), géométries du schéma et du coffret, nomenclature
+      render/        schéma technique et coffret en SVG, appareils dessinés par marque, icônes
       store/         éditeur (historique annuler / rétablir), fabrique de projets
       persistence/   projets enregistrés (IndexedDB)
-      print/         mise en page des étiquettes en mm, calibration 50 mm, impression, PDF
+      print/         étiquettes en mm, feuille « Schéma tableau », calibration 50 mm, impression, PDF, PNG
       ui/            pages, onglets, bibliothèque, tableau interactif, propriétés, étiquettes
   pages/           HomePage, NewProjectPage, ImportPlanPage, ScannerPage, SketchToPlanPage,
                    PlanEditorPage, SymbolLibraryPage, ElectricalPanelPage, LabelsPage,
@@ -295,7 +322,7 @@ scripts/           génération des icônes PNG depuis le logo SVG
 
 - **Croquis → Plan** : expérimental. Donne de bons résultats sur des croquis contrastés aux murs droits ; les ouvertures sont détectées de façon approximative. Toujours vérifier et corriger.
 - **Bluetooth direct** : expérimental, dépend du navigateur (pas d’iOS) et de l’imprimante (ESC/POS BLE uniquement).
-- **Configurateur 3D** : références des appareils modulaires non encore vérifiées (affichées « Référence non renseignée ») ; coffrets Schneider Resi9 en vue schématique tant que leurs dimensions officielles ne sont pas saisies.
+- **Configurateur de tableau** : références vérifiées pour les disjoncteurs, différentiels 63 A et prises modulaires ; les autres appareils affichent « Référence non renseignée ». Coffrets Schneider Resi9 en vue schématique tant que leurs dimensions officielles ne sont pas saisies. Les appareils sont des dessins vectoriels inspirés des produits (la marque est écrite en texte simple, sans logo).
 - **Pas de contrôle normatif** : l’application stocke des informations électriques mais **ne vérifie pas la conformité NF C 15-100** et n’affiche jamais « installation conforme ». Toute aide future sera présentée comme *« Aide indicative. Validation par l’électricien. »*
 - Les hauteurs d’étiquettes fabricants sont indicatives et doivent être mesurées.
 

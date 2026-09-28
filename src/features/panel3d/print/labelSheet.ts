@@ -1,6 +1,6 @@
-import type { LabelStyle, PanelProject } from '../types';
+import type { BoardDoc, LabelStyle } from '../types';
 import { allLabelZones, type LabelZone } from '../engine/placement';
-import { capacityOf } from '../store/panelEditorStore';
+import { capacityOf, displayLabel } from '../store/panelEditorStore';
 import { brandName, getEnclosure } from '../data/catalog';
 import { REFERENCE_NOT_PROVIDED } from '../constants';
 
@@ -23,6 +23,8 @@ export interface PieceZone {
   x: number;
   w: number;
   label: string;
+  /** Repère du circuit (coin de l'étiquette). */
+  circuitRef: string;
   icon: string | null;
   style: LabelStyle;
 }
@@ -80,7 +82,7 @@ export function splitRow(zones: LabelZone[], modulesPerRow: number, maxModules: 
   return out;
 }
 
-export function stripPieces(project: PanelProject, maxWidthMm: number): StripPiece[] {
+export function stripPieces(project: BoardDoc, maxWidthMm: number): StripPiece[] {
   const cap = capacityOf(project);
   const moduleMm = project.print.moduleMm;
   const maxModules = Math.max(1, Math.floor((maxWidthMm + EPS) / moduleMm / 0.5) * 0.5);
@@ -88,6 +90,8 @@ export function stripPieces(project: PanelProject, maxWidthMm: number): StripPie
   const pieces: StripPiece[] = [];
   for (let row = 0; row < cap.rows; row++) {
     const rz = zones.filter((z) => z.row === row);
+    // Seules les étiquettes nécessaires : une rangée vide n'est pas imprimée
+    if (!rz.length) continue;
     const ranges = splitRow(rz, cap.modulesPerRow, maxModules);
     ranges.forEach(([a, b], i) => {
       pieces.push({
@@ -102,7 +106,15 @@ export function stripPieces(project: PanelProject, maxWidthMm: number): StripPie
           .map((z) => {
             const s = Math.max(z.start, a);
             const e = Math.min(z.start + z.width, b);
-            return { leaderId: z.leaderId, x: (s - a) * moduleMm, w: (e - s) * moduleMm, label: z.label, icon: z.icon, style: z.style };
+            return {
+              leaderId: z.leaderId,
+              x: (s - a) * moduleMm,
+              w: (e - s) * moduleMm,
+              label: displayLabel(project, z),
+              circuitRef: z.circuitRef,
+              icon: z.icon,
+              style: z.style,
+            };
           }),
       });
     });
@@ -115,7 +127,7 @@ export function stripPieces(project: PanelProject, maxWidthMm: number): StripPie
  * `scale` = correction d'échelle de l'imprimante (1 = aucune) : la place
  * disponible est réduite d'autant pour que le bandeau corrigé tienne.
  */
-export function layoutSheet(project: PanelProject, scale = 1): SheetLayout {
+export function layoutSheet(project: BoardDoc, scale = 1): SheetLayout {
   const cap = capacityOf(project);
   const fullWidth = cap.modulesPerRow * project.print.moduleMm;
   const portraitWidth = (A4.w - PAGE_MARGIN_MM * 2) / scale;
@@ -144,12 +156,13 @@ export function layoutSheet(project: PanelProject, scale = 1): SheetLayout {
 }
 
 /** En-tête des pages : projet, marque, gamme, coffret et référence. */
-export function panelHeader(p: PanelProject): string {
+export function panelHeader(p: BoardDoc): string {
   const enc = getEnclosure(p.enclosureId);
-  if (!enc) return p.name;
+  const title = [p.projectName, p.title].filter(Boolean).join(' — ');
+  if (!enc) return title;
   // Le nom du coffret contient en général déjà la gamme (« Coffret Drivia… »)
   const model = enc.name.toLowerCase().includes(enc.family.toLowerCase()) ? enc.name : `${enc.family} ${enc.name}`;
-  return `${p.name} — ${brandName(enc.brand)} ${model} — ${enc.reference ?? REFERENCE_NOT_PROVIDED}`;
+  return `${title} — ${brandName(enc.brand)} ${model} — ${enc.reference ?? REFERENCE_NOT_PROVIDED}`;
 }
 
 /** Légende au-dessus d'un bandeau : « Rangée 1 (1/2) ». */

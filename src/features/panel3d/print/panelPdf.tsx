@@ -1,18 +1,20 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { PanelProject } from '../types';
-import { brandName, formatDimensions, getEnclosure, getProduct, productRatingText } from '../data/catalog';
+import type { BoardDoc, PanelProject } from '../types';
+import { brandName, getEnclosure, getProduct, productRatingText } from '../data/catalog';
 import { REFERENCE_NOT_PROVIDED } from '../constants';
 import { buildBom } from '../engine/bom';
-import { boardGeometry } from '../engine/geometry';
 import { allLabelZones, devicesInRow } from '../engine/placement';
-import { BoardSvg, boardViewBox } from '../render/BoardSvg';
+import { SchemaSvg } from '../render/SchemaSvg';
+import { schemaGeometry } from '../engine/schemaGeometry';
 import { layoutLabel } from '../render/LabelCell';
 import { iconSvg } from '../render/icons';
 import { mmToPt, ptToMm } from '../../../utils/units';
 import { sanitizeForFont } from '../../../services/pdf/pdfUtils';
 import { PAGE_MARGIN_MM, layoutSheet, loadCorrectionPercent, panelHeader, percentToScale, pieceCaption } from './labelSheet';
 import { svgToPng } from './raster';
+import { SchemaPageSvg, commonOrientation, docsFor } from './schemaSheet';
+import { displayLabel } from '../store/panelEditorStore';
 
 /**
  * Export PDF :
@@ -23,7 +25,7 @@ import { svgToPng } from './raster';
  * de l'imprimante ; seules les icônes sont rastérisées.
  */
 
-export type PdfMode = 'full' | 'labels';
+export type PdfMode = 'full' | 'schema' | 'labels';
 
 const A4 = { w: mmToPt(210), h: mmToPt(297) };
 const INK = rgb(0.07, 0.09, 0.15);
@@ -57,44 +59,28 @@ async function iconImage(pdf: PDFDocument, cache: Map<string, PDFImage>, id: str
   return img;
 }
 
-/* ---------------------------- Fiche + vue ---------------------------- */
+/* ------------------------- Schéma du tableau ------------------------- */
 
-async function summaryPage(pdf: PDFDocument, p: PanelProject, f: Fonts) {
-  const enc = getEnclosure(p.enclosureId)!;
-  const page = pdf.addPage([A4.w, A4.h]);
-  const m = mmToPt(15);
-  let y = A4.h - m;
-  text(page, 'TABLEAU ÉLECTRIQUE', m, y - 9, 9, f.bold, GREY);
-  y -= 30;
-  text(page, clip(f.bold, p.name, 20, A4.w - 2 * m), m, y, 20, f.bold);
-  y -= 22;
-  const rows: [string, string, boolean?][] = [
-    ['Fabricant', brandName(enc.brand)],
-    ['Gamme', enc.family],
-    ['Coffret', enc.name],
-    ['Référence', enc.reference ?? REFERENCE_NOT_PROVIDED, !enc.reference],
-    ['Dimensions (L × H × P)', formatDimensions(enc.dimensions), !enc.dimensions],
-    ['Capacité', `${enc.rows} rangée(s) × ${enc.modulesPerRow} modules = ${enc.totalModules} modules`],
-    ['Date', new Date().toLocaleDateString('fr-FR')],
-  ];
-  for (const [k, v, warn] of rows) {
-    text(page, k, m, y, 10, f.reg, GREY);
-    text(page, clip(f.bold, v, 10, A4.w - 2 * m - 140), m + 140, y, 10, f.bold, warn ? AMBER : INK);
-    y -= 15;
-  }
-  // Vue du tableau (image)
-  const geo = boardGeometry(enc);
-  const vb = boardViewBox(geo);
-  const pxPerMm = 5;
-  const markup = renderToStaticMarkup(<BoardSvg project={p} enclosure={enc} uid="pdf" width={vb.w * pxPerMm} height={vb.h * pxPerMm} />);
-  const png = await svgToPng(markup, vb.w * pxPerMm, vb.h * pxPerMm);
+/** Page A4 « Schéma tableau » (rendu identique à l'aperçu, rastérisé à ~250 dpi). */
+async function schemaPage(pdf: PDFDocument, doc: BoardDoc, orientation: 'portrait' | 'landscape', date: Date) {
+  const W = orientation === 'portrait' ? 210 : 297;
+  const H = orientation === 'portrait' ? 297 : 210;
+  const pxPerMm = 10;
+  const markup = renderToStaticMarkup(<SchemaPageSvg doc={doc} orientation={orientation} uid="pdfs" date={date} />).replace(/width="[\d.]+mm" height="[\d.]+mm"/, `width="${W * pxPerMm}" height="${H * pxPerMm}"`);
+  const png = await svgToPng(markup, W * pxPerMm, H * pxPerMm);
   const img = await pdf.embedPng(png);
-  const boxW = A4.w - 2 * m;
-  const boxH = y - m - 10;
-  const k = Math.min(boxW / img.width, boxH / img.height);
-  const w = img.width * k;
-  const h = img.height * k;
-  page.drawImage(img, { x: m + (boxW - w) / 2, y: m + (boxH - h) / 2, width: w, height: h });
+  const page = pdf.addPage([mmToPt(W), mmToPt(H)]);
+  page.drawImage(img, { x: 0, y: 0, width: mmToPt(W), height: mmToPt(H) });
+}
+
+/** Image PNG haute résolution du schéma (≈ 8 px par millimètre de schéma). */
+export async function schemaPng(doc: BoardDoc, pxPerUnit = 8): Promise<Uint8Array> {
+  const enc = getEnclosure(doc.enclosureId)!;
+  const geo = schemaGeometry(enc);
+  const w = Math.round(geo.width * pxPerUnit);
+  const h = Math.round(geo.height * pxPerUnit);
+  const markup = renderToStaticMarkup(<SchemaSvg doc={doc} enclosure={enc} uid="png" width={w} height={h} info={`Projet : ${doc.projectName}`} />);
+  return svgToPng(markup, w, h);
 }
 
 /* --------------------------- Tableaux texte -------------------------- */
@@ -142,7 +128,7 @@ function table(pdf: PDFDocument, f: Fonts, title: string, cols: Col[], data: { c
   }
 }
 
-function bomTable(pdf: PDFDocument, p: PanelProject, f: Fonts) {
+function bomTable(pdf: PDFDocument, p: BoardDoc, f: Fonts) {
   const enc = getEnclosure(p.enclosureId)!;
   const cols: Col[] = [
     { title: 'Qté', width: 30, align: 'right' },
@@ -159,34 +145,37 @@ function bomTable(pdf: PDFDocument, p: PanelProject, f: Fonts) {
       warn: l.product.reference ? [] : [2],
     })),
   ];
-  table(pdf, f, 'Nomenclature', cols, data);
+  table(pdf, f, `Nomenclature — ${p.title}`, cols, data);
 }
 
-function circuitTable(pdf: PDFDocument, p: PanelProject, f: Fonts) {
+function circuitTable(pdf: PDFDocument, p: BoardDoc, f: Fonts) {
   const enc = getEnclosure(p.enclosureId)!;
   const zones = allLabelZones(p.devices, enc.rows, p.labelStyle);
   const cols: Col[] = [
-    { title: 'Rangée', width: 46 },
-    { title: 'Modules', width: 60 },
-    { title: 'Étiquette', width: 190 },
-    { title: 'Appareil', width: 215 },
+    { title: 'Rangée', width: 44 },
+    { title: 'Modules', width: 56 },
+    { title: 'Repère', width: 50 },
+    { title: 'Étiquette', width: 170 },
+    { title: 'Appareil', width: 190 },
   ];
   const fmt = (n: number) => String(n).replace('.', ',');
   const data: { cells: string[] }[] = [];
   for (let r = 0; r < enc.rows; r++) {
     for (const d of devicesInRow(p.devices, r)) {
       const z = zones.find((x) => x.ids.includes(d.id));
-      const label = z ? (z.leaderId === d.id ? z.label || '—' : `(regroupé avec « ${z.label || '—'} »)`) : '—';
+      const zl = z ? displayLabel(p, z) : '';
+      const label = z ? (z.leaderId === d.id ? zl || '—' : `(regroupé avec « ${zl || '—'} »)`) : '—';
       const range = d.moduleWidth > 1 ? `${fmt(d.startModule + 1)} à ${fmt(d.startModule + d.moduleWidth)}` : fmt(d.startModule + 1);
-      data.push({ cells: [String(r + 1), range, label, getProduct(d.productId)?.fullName ?? '—'] });
+      const product = getProduct(d.productId);
+      data.push({ cells: [String(r + 1), range, d.circuitRef || '—', label, product ? `${product.fullName}${product.reference ? ` (${product.reference})` : ''}` : '—'] });
     }
   }
-  if (data.length) table(pdf, f, 'Liste des circuits', cols, data);
+  if (data.length) table(pdf, f, `Liste des circuits — ${p.title}`, cols, data);
 }
 
 /* ------------------------------ Étiquettes ---------------------------- */
 
-async function labelPages(pdf: PDFDocument, p: PanelProject, f: Fonts) {
+async function labelPages(pdf: PDFDocument, p: BoardDoc, f: Fonts) {
   const scale = percentToScale(loadCorrectionPercent());
   const layout = layoutSheet(p, scale);
   const header = panelHeader(p);
@@ -209,17 +198,22 @@ async function labelPages(pdf: PDFDocument, p: PanelProject, f: Fonts) {
       for (const z of piece.zones) {
         const zx = x + z.x;
         page.drawRectangle({ x: X(zx), y: Y(y + h), width: L(z.w), height: L(h), borderColor: INK, borderWidth: 0.57 * scale });
-        const lay = layoutLabel(z.w, h, z.label, z.icon, z.style, p.print.fontSizePt, measure);
+        // Repère dans le coin (même disposition que LabelCell)
+        const ref = p.print.showRef ? z.circuitRef.trim() : '';
+        const refSize = Math.min(2.6, h * 0.24);
+        const refH = ref ? refSize + 0.4 : 0;
+        if (ref) text(page, ref, X(zx + 0.6), Y(y + refSize + 0.3), (refSize / (25.4 / 72)) * scale, f.bold, rgb(0.22, 0.25, 0.32));
+        const lay = layoutLabel(z.w, h - refH, z.label, z.icon, z.style, p.print.fontSizePt, measure);
         if (lay.icon && z.icon) {
           const img = await iconImage(pdf, icons, z.icon);
-          if (img) page.drawImage(img, { x: X(zx + lay.icon.x), y: Y(y + lay.icon.y + lay.icon.size), width: L(lay.icon.size), height: L(lay.icon.size) });
+          if (img) page.drawImage(img, { x: X(zx + lay.icon.x), y: Y(y + refH + lay.icon.y + lay.icon.size), width: L(lay.icon.size), height: L(lay.icon.size) });
         }
         if (lay.text) {
           const sizePt = (lay.text.sizeMm / (25.4 / 72)) * scale;
           lay.text.lines.forEach((line, i) => {
             const s = sanitizeForFont(f.bold, line);
             const tw = f.bold.widthOfTextAtSize(s, sizePt);
-            page.drawText(s, { x: X(zx + lay.text!.x) - tw / 2, y: Y(y + lay.text!.y + i * lay.text!.lineH), size: sizePt, font: f.bold, color: INK });
+            page.drawText(s, { x: X(zx + lay.text!.x) - tw / 2, y: Y(y + refH + lay.text!.y + i * lay.text!.lineH), size: sizePt, font: f.bold, color: rgb(0, 0, 0) });
           });
         }
       }
@@ -228,16 +222,27 @@ async function labelPages(pdf: PDFDocument, p: PanelProject, f: Fonts) {
   }
 }
 
-export async function buildPanelPdf(p: PanelProject, mode: PdfMode): Promise<Uint8Array> {
+/**
+ * PDF : « schema » (schéma tableau), « labels » (étiquettes seules) ou
+ * « full » (dossier : schéma, nomenclature, liste des circuits, étiquettes),
+ * pour le tableau actif ou pour tous les tableaux du projet.
+ */
+export async function buildPanelPdf(project: PanelProject, mode: PdfMode, scope: 'current' | 'all' = 'current'): Promise<Uint8Array> {
+  const docs = docsFor(project, scope);
   const pdf = await PDFDocument.create();
-  pdf.setTitle(`${p.name} — ${mode === 'full' ? 'tableau électrique' : 'étiquettes'}`);
+  pdf.setTitle(`${project.name} — ${mode === 'labels' ? 'étiquettes' : mode === 'schema' ? 'schéma tableau' : 'dossier tableau électrique'}`);
   pdf.setCreator('MG Elec & Plans');
   const f: Fonts = { reg: await pdf.embedFont(StandardFonts.Helvetica), bold: await pdf.embedFont(StandardFonts.HelveticaBold) };
-  if (mode === 'full') {
-    await summaryPage(pdf, p, f);
-    bomTable(pdf, p, f);
-    circuitTable(pdf, p, f);
+  const orientation = commonOrientation(docs);
+  const date = new Date();
+  for (const doc of docs) {
+    if (mode !== 'labels') await schemaPage(pdf, doc, orientation, date);
+    if (mode === 'full') {
+      bomTable(pdf, doc, f);
+      circuitTable(pdf, doc, f);
+    }
+    if (mode !== 'schema' && doc.devices.length) await labelPages(pdf, doc, f);
   }
-  await labelPages(pdf, p, f);
+  if (!pdf.getPageCount()) throw new Error('Rien à exporter : posez d’abord des appareils');
   return pdf.save();
 }

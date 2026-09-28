@@ -35,9 +35,12 @@ const dev = (id: string, row: number, start: number, width = 1, extra: Partial<P
   row,
   startModule: start,
   moduleWidth: width,
+  circuitRef: '',
   label: '',
+  shortLabel: '',
   icon: null,
   labelStyle: null,
+  notes: '',
   mergedWithPrev: false,
   linkedComponents: [],
   ...extra,
@@ -222,33 +225,34 @@ describe('Éditeur de tableau (store)', () => {
     expect(usePanelEditor.getState().addDevice('legrand-breaker-C-10', 0, 1).message).toBe('Emplacement déjà occupé');
     for (let i = 2; i < 13; i++) expect(usePanelEditor.getState().addDevice('legrand-breaker-C-16', 0, i).ok).toBe(true);
     expect(usePanelEditor.getState().addDevice('legrand-breaker-C-16', 0, 5).message).toBe('Rangée complète');
-    expect(usePanelEditor.getState().project!.devices).toHaveLength(12);
+    expect(usePanelEditor.getState().doc!.devices).toHaveLength(12);
     usePanelEditor.getState().undo();
-    expect(usePanelEditor.getState().project!.devices).toHaveLength(11);
+    expect(usePanelEditor.getState().doc!.devices).toHaveLength(11);
     usePanelEditor.getState().redo();
-    expect(usePanelEditor.getState().project!.devices).toHaveLength(12);
-    const rcd = usePanelEditor.getState().project!.devices.find((d) => d.productId === 'legrand-rcd-40-A')!;
-    expect(rcd.label).toBe('Différentiel');
+    expect(usePanelEditor.getState().doc!.devices).toHaveLength(12);
+    // Un différentiel n'a ni repère ni désignation imposés
+    const rcd = usePanelEditor.getState().doc!.devices.find((d) => d.productId === 'legrand-rcd-40-A')!;
+    expect(rcd).toMatchObject({ label: '', circuitRef: '', shortLabel: '' });
   });
 
   it('déplacement entre rangées, duplication, étiquette, changement de marque', () => {
     const id = usePanelEditor.getState().addDevice('legrand-breaker-C-20', 0, 3).id!;
     expect(usePanelEditor.getState().moveDevice(id, 1, 4).ok).toBe(true);
-    expect(usePanelEditor.getState().project!.devices[0]).toMatchObject({ row: 1, startModule: 4 });
+    expect(usePanelEditor.getState().doc!.devices[0]).toMatchObject({ row: 1, startModule: 4 });
     const copy = usePanelEditor.getState().duplicateDevice(id).id!;
-    expect(usePanelEditor.getState().project!.devices.find((d) => d.id === copy)).toMatchObject({ row: 1, startModule: 5 });
+    expect(usePanelEditor.getState().doc!.devices.find((d) => d.id === copy)).toMatchObject({ row: 1, startModule: 5 });
     usePanelEditor.getState().updateLabel(id, { label: 'F' }, 'label-x');
     usePanelEditor.getState().updateLabel(id, { label: 'Fo' }, 'label-x');
     usePanelEditor.getState().updateLabel(id, { label: 'Four', icon: 'four' }, 'label-x');
     const pastLen = usePanelEditor.getState().past.length;
     usePanelEditor.getState().undo();
     // Saisie regroupée : une seule étape annulée
-    expect(usePanelEditor.getState().project!.devices.find((d) => d.id === id)!.label).toBe('');
+    expect(usePanelEditor.getState().doc!.devices.find((d) => d.id === id)!.label).toBe('');
     usePanelEditor.getState().redo();
     expect(usePanelEditor.getState().past.length).toBe(pastLen);
     const removed = usePanelEditor.getState().setBrand('hager', 'hager-gamma13-4r');
     expect(removed).toEqual([]);
-    const devices = usePanelEditor.getState().project!.devices;
+    const devices = usePanelEditor.getState().doc!.devices;
     expect(devices.every((d) => d.productId.startsWith('hager-'))).toBe(true);
     expect(devices.find((d) => d.id === id)!.label).toBe('Four');
   });
@@ -258,18 +262,18 @@ describe('Éditeur de tableau (store)', () => {
     usePanelEditor.getState().addDevice('legrand-breaker-C-16', 0, 0);
     const removed = usePanelEditor.getState().setEnclosure('legrand-drivia13-2r');
     expect(removed).toHaveLength(1);
-    expect(usePanelEditor.getState().project!.devices).toHaveLength(1);
+    expect(usePanelEditor.getState().doc!.devices).toHaveLength(1);
   });
 
   it('fusionner puis séparer des zones d’étiquette ; dupliquer une rangée', () => {
     const a = usePanelEditor.getState().addDevice('legrand-contactor-hc-20', 0, 0).id!;
     usePanelEditor.getState().addDevice('legrand-breaker-C-20', 0, 1);
     expect(usePanelEditor.getState().mergeWithNext(a).ok).toBe(true);
-    const p = usePanelEditor.getState().project!;
+    const p = usePanelEditor.getState().doc!;
     expect(labelZones(p.devices, 0, 'both')).toHaveLength(1);
     usePanelEditor.getState().splitZone(a);
-    expect(labelZones(usePanelEditor.getState().project!.devices, 0, 'both')).toHaveLength(2);
+    expect(labelZones(usePanelEditor.getState().doc!.devices, 0, 'both')).toHaveLength(2);
     expect(usePanelEditor.getState().duplicateRow(0).ok).toBe(true);
-    expect(usePanelEditor.getState().project!.devices.filter((d) => d.row === 1)).toHaveLength(2);
+    expect(usePanelEditor.getState().doc!.devices.filter((d) => d.row === 1)).toHaveLength(2);
   });
 });
