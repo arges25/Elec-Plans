@@ -11,6 +11,7 @@ import type {
   PrinterProfile,
   Project,
 } from '../types';
+import type { PanelProject } from '../features/panel3d/types';
 
 /**
  * Base locale IndexedDB (via Dexie). Aucune donnée n'est envoyée sur internet :
@@ -27,6 +28,8 @@ export class MgDatabase extends Dexie {
   printerProfiles!: EntityTable<PrinterProfile, 'id'>;
   customTemplates!: EntityTable<PanelTemplate, 'id'>;
   settings!: EntityTable<AppSettings, 'id'>;
+  /** Configurateur de tableau (coffret, appareils, étiquettes). */
+  panelProjects!: EntityTable<PanelProject, 'id'>;
 
   constructor(name = 'mg-elec-plans') {
     super(name);
@@ -41,6 +44,10 @@ export class MgDatabase extends Dexie {
       printerProfiles: 'id, name',
       customTemplates: 'id, name',
       settings: 'id',
+    });
+    // v2 : configurateur de tableau électrique
+    this.version(2).stores({
+      panelProjects: 'id, name, projectId, updatedAt',
     });
   }
 }

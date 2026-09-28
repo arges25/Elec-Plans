@@ -11,6 +11,7 @@ MG Elec & Plans est une application web mobile (PWA installable) destinée aux �
 ## Sommaire
 
 - [Fonctions](#fonctions)
+- [Configurateur de tableau 3D](#configurateur-de-tableau-3d)
 - [Installation locale](#installation-locale)
 - [Build et tests](#build-et-tests)
 - [GitHub Pages](#github-pages)
@@ -45,10 +46,48 @@ MG Elec & Plans est une application web mobile (PWA installable) destinée aux �
 | **Légende** | Construite automatiquement à partir des symboles présents (avec quantités) |
 | **Aperçu client** | Plein écran sans grille ni poignées : plan, symboles, liaisons, légende, titre ; partage d’une image PNG |
 | **Export PDF** | A4 / A3, portrait / paysage, marges, titre, chantier, client, date, adresse, légende, notes, liaisons, plan original, plan reconstruit, logo. **PDF vectoriel** (pdf-lib). Aperçu, export, impression, partage |
+| **Configurateur 3D** | Tableau électrique en 3D légère : coffret Legrand Drivia, Schneider Resi9 ou Hager Gamma+ à l’échelle (dimensions officielles), rails DIN au pas de 18 mm, bibliothèque d’appareils par marque, glisser-déposer aimanté, étiquettes **au-dessus** des appareils avec texte + icône, nomenclature, impression en millimètres réels et PDF. Voir [Configurateur de tableau 3D](#configurateur-de-tableau-3d) |
 | **Tableau** | Rangées, circuits (n°, nom, protection, section, modules, pictogramme), différentiels, réserves, import des circuits depuis le plan, renumérotation |
 | **Étiquettes** | Éditeur simple : réglages à gauche, **aperçu en direct** à droite (en haut sur téléphone). Marque (Legrand, Schneider, Hager), modèle (13 ou 18 modules, modèles personnalisés), largeur d’un module, hauteur, modules par ligne, nombre de lignes, texte de chaque case, taille et alignement du texte, ajouter / supprimer une case, largeur d’une case, dupliquer une ligne, réorganiser les cases. Texte ajusté automatiquement (réduction, 2 lignes max, jamais hors de la case) |
 | **Impression** | Impression système (AirPrint / Wi-Fi), PDF, aperçu taille réelle avec règle graduée, calibration imprimante (bande test 100 mm), profils d’imprimante, Bluetooth direct expérimental (Web Bluetooth + ESC/POS) |
 | **Hors connexion** | Après la première ouverture : chantiers, plan, symboles, liaisons, étiquettes, PDF fonctionnent sans internet (service worker) |
+
+---
+
+## Configurateur de tableau 3D
+
+Accès : carte **Tableaux électriques 3D** de l’accueil (`/tableaux`), ou bouton **Configurateur 3D** de l’écran *Tableau électrique* d’un chantier. L’ancien éditeur d’étiquettes (`/labels`) reste disponible tant que le configurateur est en cours de déploiement.
+
+Cinq onglets :
+
+1. **Configuration** : Fabricant → Gamme → 13 / 18 modules (seulement si la base contient cette largeur) → 1 à 4 rangées (vignettes du coffret). Option *Afficher tous les fabricants* (désactivée par défaut : les marques ne sont jamais mélangées). Fiche du coffret avec bouton **i** (source officielle, date de vérification).
+2. **Édition du tableau** : bibliothèque à gauche, tableau au centre, propriétés à droite (sur téléphone : tableau plein écran + panneaux coulissants). Glisser un appareil sur un rail : les places libres s’affichent en bleu, la silhouette est verte si l’emplacement est libre, rouge sinon (« Emplacement déjà occupé », « Rangée complète »…). Appareil posé : **Déplacer, Dupliquer, Supprimer, Modifier, Étiquette**. Dupliquer / vider une rangée, organisation automatique, numérotation des modules.
+3. **Étiquettes** : bandeaux agrandis rangée par rangée ; toucher une étiquette, saisir le nom du circuit : l’icône est proposée automatiquement (« Four », « Lave-linge », « VMC »…) et reste modifiable (plus de 50 icônes). Styles *Texte*, *Icône*, *Icône + texte* (par défaut). Fusionner / séparer des étiquettes d’appareils voisins. **Entrée** passe à l’étiquette suivante.
+4. **Nomenclature** : quantité, fabricant, référence, désignation, calibre, largeur modulaire (appareils identiques regroupés).
+5. **Aperçu & impression** : étiquettes à l’échelle réelle (millimètres, jamais des pixels), impression système, **PDF complet** (fiche projet / marque / gamme / référence, vue du tableau, nomenclature, liste des circuits, étiquettes) ou **PDF étiquettes uniquement**, calibration par **règle de 50 mm** (correction en % enregistrée sur l’appareil).
+
+Gestes : un doigt = sélectionner (toucher court), **appui long** = déplacer un appareil, glisser sur le fond ou deux doigts = déplacer la vue, pincer = zoom, boutons + / − / *voir tout*. Le zoom et le défilement ne déplacent jamais un appareil. Annuler / rétablir pour toutes les actions (Ctrl+Z / Ctrl+Y), sauvegarde automatique, projets nommés.
+
+### Données fabricants (jamais inventées)
+
+Chaque marque a son propre fichier : [`legrand.json`](src/features/panel3d/data/manufacturers/legrand.json), [`schneider.json`](src/features/panel3d/data/manufacturers/schneider.json), [`hager.json`](src/features/panel3d/data/manufacturers/hager.json) (coffrets et appareils, avec `sourceName`, `sourceUrl`, `lastVerified`).
+
+| Gamme | Coffrets de la base | Dimensions L × H × P |
+| --- | --- | --- |
+| Legrand Drivia 13 modules | 401211 → 401214 (1 à 4 rangées) | 250 × 250 / 375 / 500 / 625 × 103,5 mm |
+| Legrand Drivia 18 modules | 401224 (4 rangées, entraxe 125 mm) | 355 × 625 × 103,5 mm |
+| Schneider Resi9 13 / 18 modules | R9H13401 → R9H13404, R9H18401 → R9H18404 | *Données techniques non renseignées* |
+| Hager Gamma+ 13 modules | GD113A → GD413A (1 à 4 rangées) | 250 × 250 / 375 / 500 / 625 × 103 mm |
+| Hager Gamma+ 18 modules | GD418A (4 rangées) | 355 × 625 × 103 mm |
+
+Règles appliquées par le code :
+
+- une dimension ou une référence absente de la base s’affiche **« Données techniques non renseignées »** (ou « Référence non renseignée ») ; aucune valeur approchée, aucune extrapolation, aucune reprise des cotes d’une autre marque ;
+- sans dimensions officielles (Resi9), le coffret est dessiné en **vue schématique** (grille modulaire seule, sans cote) ;
+- en 18 modules, seules les configurations vérifiées sont proposées (4 rangées) ;
+- les appareils modulaires utilisent la largeur modulaire standard (1 module = 18 mm, disjoncteur 1 module, différentiel 2 modules, prise 2P+T 2,5 modules) ; leurs références fabricant restent à `null` tant qu’elles ne sont pas vérifiées sur la documentation officielle.
+
+Pour compléter la base : ajouter l’entrée dans le JSON de la marque en renseignant la source officielle (site du fabricant, puis fiche PDF, puis catalogue officiel — jamais une marketplace), puis lancer `npm test` (les tests vérifient notamment qu’aucune dimension n’est copiée d’une marque à l’autre).
 
 ---
 
@@ -221,6 +260,15 @@ src/
     scanner/       recadrage 4 coins + loupe
     projects/      cartes de chantier
     onboarding/    tour guidé, aide à l’installation
+  features/
+    panel3d/       configurateur de tableau 3D :
+      data/          bases fabricants (JSON par marque) + catalogue
+      engine/        moteur de placement (grille 0,5 module), géométrie en mm, nomenclature
+      render/        rendu SVG « 3D légère » (coffret, faces d'appareils par marque, icônes)
+      store/         éditeur (historique annuler / rétablir), fabrique de projets
+      persistence/   projets enregistrés (IndexedDB)
+      print/         mise en page des étiquettes en mm, calibration 50 mm, impression, PDF
+      ui/            pages, onglets, bibliothèque, tableau interactif, propriétés, étiquettes
   pages/           HomePage, NewProjectPage, ImportPlanPage, ScannerPage, SketchToPlanPage,
                    PlanEditorPage, SymbolLibraryPage, ElectricalPanelPage, LabelsPage,
                    LabelPreviewPage, TemplatesPage, TemplateEditorPage, PrintCalibrationPage,
@@ -247,6 +295,7 @@ scripts/           génération des icônes PNG depuis le logo SVG
 
 - **Croquis → Plan** : expérimental. Donne de bons résultats sur des croquis contrastés aux murs droits ; les ouvertures sont détectées de façon approximative. Toujours vérifier et corriger.
 - **Bluetooth direct** : expérimental, dépend du navigateur (pas d’iOS) et de l’imprimante (ESC/POS BLE uniquement).
+- **Configurateur 3D** : références des appareils modulaires non encore vérifiées (affichées « Référence non renseignée ») ; coffrets Schneider Resi9 en vue schématique tant que leurs dimensions officielles ne sont pas saisies.
 - **Pas de contrôle normatif** : l’application stocke des informations électriques mais **ne vérifie pas la conformité NF C 15-100** et n’affiche jamais « installation conforme ». Toute aide future sera présentée comme *« Aide indicative. Validation par l’électricien. »*
 - Les hauteurs d’étiquettes fabricants sont indicatives et doivent être mesurées.
 

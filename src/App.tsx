@@ -27,6 +27,8 @@ const PrintersPage = lazy(() => import('./pages/PrintersPage'));
 const PrintCalibrationPage = lazy(() => import('./pages/PrintCalibrationPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+const PanelProjectsPage = lazy(() => import('./features/panel3d/ui/PanelProjectsPage'));
+const PanelConfiguratorPage = lazy(() => import('./features/panel3d/ui/PanelConfiguratorPage'));
 
 function PageLoader() {
   return (
@@ -57,6 +59,8 @@ export function App() {
             <Route path="/panel/:panelId" element={<ElectricalPanelPage />} />
             <Route path="/panel/:panelId/labels" element={<LabelsPage />} />
             <Route path="/panel/:panelId/preview" element={<LabelPreviewPage />} />
+            <Route path="/tableaux" element={<PanelProjectsPage />} />
+            <Route path="/tableaux/:panelProjectId" element={<PanelConfiguratorPage />} />
             <Route path="/library" element={<SymbolLibraryPage />} />
             <Route path="/labels" element={<LabelsHomePage />} />
             <Route path="/templates" element={<TemplatesPage />} />

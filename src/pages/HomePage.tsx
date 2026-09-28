@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BookOpen, FileUp, FolderOpen, Plus, Search, Settings, Sparkles, Tags } from 'lucide-react';
+import { BookOpen, Box, FileUp, FolderOpen, Plus, Search, Settings, Sparkles, Tags } from 'lucide-react';
 import { db } from '../database/db';
 import { LogoFull } from '../components/layout/Logo';
 import { ProjectCard } from '../components/projects/ProjectCard';
@@ -53,6 +53,7 @@ export function HomePage() {
   };
 
   const quickLinks = [
+    { to: '/tableaux', label: 'Tableaux électriques 3D', icon: Box, desc: 'Configurateur · étiquettes', featured: true },
     { to: '/projects', label: 'Mes chantiers', icon: FolderOpen, desc: `${projects?.length ?? 0} projet(s)` },
     { to: '/library', label: 'Bibliothèque électrique', icon: BookOpen, desc: '150+ symboles' },
     { to: '/labels', label: 'Étiquettes tableau', icon: Tags, desc: 'Legrand · Schneider · Hager' },
@@ -96,15 +97,17 @@ export function HomePage() {
           </div>
         )}
 
-        <nav aria-label="Accès rapide" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <nav aria-label="Accès rapide" className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {quickLinks.map((l) => (
             <button
               key={l.to}
               type="button"
               onClick={() => navigate(l.to)}
-              className="flex min-h-24 flex-col items-start gap-2 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-brand-300 hover:shadow"
+              className={`flex min-h-24 flex-col items-start gap-2 rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:shadow ${
+                'featured' in l ? 'col-span-2 border-blue-200 hover:border-blue-400 md:col-span-1' : 'border-gray-200 hover:border-brand-300'
+              }`}
             >
-              <span className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <span className={`flex size-10 items-center justify-center rounded-xl ${'featured' in l ? 'bg-blue-50 text-blue-600' : 'bg-brand-50 text-brand-600'}`}>
                 <l.icon className="size-5" aria-hidden />
               </span>
               <span className="font-bold leading-tight text-gray-900">{l.label}</span>
