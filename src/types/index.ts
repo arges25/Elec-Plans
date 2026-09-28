@@ -112,6 +112,23 @@ export interface Measure {
   y2: number;
 }
 
+/**
+ * Bande / ruban LED tracé sur le plan : polyligne (départ, angles, fin)
+ * qui peut suivre les murs, être fermée (tour de pièce), allongée ou raccourcie.
+ */
+export interface LedStrip {
+  id: ID;
+  /** Points à plat [x1, y1, x2, y2, ...] en unités plan. */
+  points: number[];
+  /** Contour fermé (ex. tour de plafond d'une chambre). */
+  closed?: boolean;
+  color: string;
+  /** Épaisseur du tracé (unités plan). */
+  width: number;
+  /** Libellé affiché le long de la bande (par défaut « LED »). */
+  label?: string;
+}
+
 export interface PlanScale {
   /** Nombre d'unités plan pour un mètre réel. */
   pixelsPerMeter: number;
@@ -126,6 +143,8 @@ export interface PlanVectorData {
   rooms: Room[];
   annotations: Annotation[];
   measures: Measure[];
+  /** Bandes LED tracées (absent sur les plans créés avant cette fonction). */
+  ledStrips?: LedStrip[];
 }
 
 export type LayerId = 'original' | 'reconstructed' | 'symbols' | 'connections' | 'annotations' | 'measures';
@@ -440,6 +459,7 @@ export type WindowOpening = Window;
 
 /** Document éditable d'un plan (tout ce qui entre dans l'historique annuler / rétablir). */
 export interface PlanDocument extends PlanVectorData {
+  ledStrips: LedStrip[];
   scale?: PlanScale;
   symbols: PlacedSymbol[];
   connections: ElectricalConnection[];

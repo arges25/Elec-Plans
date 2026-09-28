@@ -8,8 +8,15 @@ import { bezierToFlatPoints, distance } from '../../../utils/geometry';
 import { connectionGeometry, connectionLabelPoint, dashPattern } from '../../../utils/connections';
 import { doorGeometry, openingFrame } from '../../../utils/openings';
 import { formatMeters } from '../../../utils/format';
+import { isDuplicateActivation } from '../runtime';
 
 const WALL_COLOR = '#374151';
+
+/** Double toucher : n'exécute l'action qu'une fois (dbltap + dblclick émis ensemble). */
+function onceDouble(key: string, e: KonvaEventObject<MouseEvent | TouchEvent>, action: () => void): void {
+  if (isDuplicateActivation(`dbl:${key}`, e.target.getStage()?.getPointerPosition() ?? null)) return;
+  action();
+}
 const SELECT_COLOR = '#f97316';
 
 /** Sélection au toucher en mode Sélection (retourne true si consommé). */
@@ -17,6 +24,7 @@ function selectOnTap(kind: SelectionKind, id: string, e: KonvaEventObject<MouseE
   const st = useEditorStore.getState();
   if (st.clientPreview || st.tool !== 'select') return;
   e.cancelBubble = true;
+  if (isDuplicateActivation(`${kind}:${id}`, e.target.getStage()?.getPointerPosition() ?? null)) return;
   const evt = e.evt as MouseEvent;
   if (evt.shiftKey && kind !== 'connection') st.toggleSelect(kind, id);
   else st.select(kind, [id]);
@@ -148,11 +156,11 @@ export const RoomLabel = memo(function RoomLabel({
       fontFamily="Helvetica, Arial, sans-serif"
       fill={selected ? SELECT_COLOR : '#6b7280'}
       listening={interactive}
-      draggable={interactive}
+      draggable={interactive && selected}
       onClick={(e) => selectOnTap('room', room.id, e)}
       onTap={(e) => selectOnTap('room', room.id, e)}
-      onDblClick={() => void renameRoom(room)}
-      onDblTap={() => void renameRoom(room)}
+      onDblClick={(e) => onceDouble(`room:${room.id}`, e, () => void renameRoom(room))}
+      onDblTap={(e) => onceDouble(`room:${room.id}`, e, () => void renameRoom(room))}
       onDragStart={() => useEditorStore.getState().beginGesture()}
       onDragEnd={(e) => {
         const st = useEditorStore.getState();
@@ -229,7 +237,8 @@ export const AnnotationNode = memo(function AnnotationNode({ a, selected, intera
   const common = {
     id: a.id,
     listening: interactive,
-    draggable: interactive,
+    // Fixe par défaut : déplaçable seulement une fois sélectionné
+    draggable: interactive && selected,
     onClick: (e: KonvaEventObject<MouseEvent>) => selectOnTap('annotation', a.id, e),
     onTap: (e: KonvaEventObject<TouchEvent>) => selectOnTap('annotation', a.id, e),
     onDragStart: () => useEditorStore.getState().beginGesture(),
@@ -258,8 +267,8 @@ export const AnnotationNode = memo(function AnnotationNode({ a, selected, intera
           fontFamily="Helvetica, Arial, sans-serif"
           fontStyle="bold"
           fill={color}
-          onDblClick={() => void editText(a)}
-          onDblTap={() => void editText(a)}
+          onDblClick={(e) => onceDouble(`ann:${a.id}`, e, () => void editText(a))}
+          onDblTap={(e) => onceDouble(`ann:${a.id}`, e, () => void editText(a))}
         />
       );
     case 'arrow':

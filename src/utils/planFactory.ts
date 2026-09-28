@@ -18,7 +18,7 @@ export function floorLabel(type: FloorType): string {
 export const LAYER_DEFS: { id: LayerId; label: string; description: string }[] = [
   { id: 'original', label: 'Plan original', description: 'Photo, scan, image ou PDF importé' },
   { id: 'reconstructed', label: 'Plan reconstruit', description: 'Murs, portes, fenêtres et pièces' },
-  { id: 'symbols', label: 'Symboles électriques', description: 'Prises, commandes, éclairages…' },
+  { id: 'symbols', label: 'Symboles électriques', description: 'Prises, commandes, éclairages, bandes LED…' },
   { id: 'connections', label: 'Liaisons', description: 'Liaisons pointillées de commande / circuit' },
   { id: 'annotations', label: 'Annotations', description: 'Textes, flèches, formes, crayon' },
   { id: 'measures', label: 'Mesures', description: 'Cotes et échelle' },

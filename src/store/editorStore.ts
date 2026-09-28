@@ -4,6 +4,7 @@ import type {
   ConnectionType,
   Door,
   ElectricalConnection,
+  LedStrip,
   LayerId,
   LayerState,
   Measure,
@@ -31,9 +32,10 @@ export type EditorTool =
   | 'rect'
   | 'pen'
   | 'measure'
-  | 'scale';
+  | 'scale'
+  | 'led';
 
-export type SelectionKind = 'symbol' | 'wall' | 'door' | 'window' | 'room' | 'annotation' | 'measure' | 'connection';
+export type SelectionKind = 'symbol' | 'wall' | 'door' | 'window' | 'room' | 'annotation' | 'measure' | 'connection' | 'led';
 
 export interface Selection {
   kind: SelectionKind;
@@ -45,12 +47,13 @@ export type RightPanel = 'library' | 'properties' | 'layers' | 'legend';
 export const HISTORY_LIMIT = 150;
 
 export function emptyDocument(): PlanDocument {
-  return { walls: [], doors: [], windows: [], rooms: [], annotations: [], measures: [], symbols: [], connections: [] };
+  return { walls: [], doors: [], windows: [], rooms: [], annotations: [], measures: [], ledStrips: [], symbols: [], connections: [] };
 }
 
 interface Clipboard {
   symbols: PlacedSymbol[];
   annotations: Annotation[];
+  ledStrips?: LedStrip[];
 }
 
 interface EditorState {
@@ -83,6 +86,8 @@ interface EditorState {
   beginGesture: () => void;
   updateTransient: (updater: (doc: PlanDocument) => PlanDocument) => void;
   endGesture: () => void;
+  /** Annule le geste en cours (ex. pincement pendant un glisser) : rien n'est déplacé. */
+  cancelGesture: () => void;
   undo: () => void;
   redo: () => void;
 
@@ -170,6 +175,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   beginGesture: () => set({ gestureStart: get().doc }),
   updateTransient: (updater) => {
+    // Hors geste (ou geste annulé), aucune modification transitoire n'est appliquée.
+    if (!get().gestureStart) return;
     const next = updater(get().doc);
     if (next !== get().doc) set({ doc: next });
   },
@@ -177,6 +184,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { gestureStart, doc, past } = get();
     if (gestureStart && gestureStart !== doc) set({ past: [...past, gestureStart].slice(-HISTORY_LIMIT), future: [], gestureStart: null });
     else set({ gestureStart: null });
+  },
+  cancelGesture: () => {
+    const { gestureStart } = get();
+    if (gestureStart) set({ doc: gestureStart, gestureStart: null });
   },
   undo: () => {
     const { past, doc, future } = get();
@@ -273,6 +284,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           return { ...d, measures: d.measures.filter((m) => !ids.has(m.id)) };
         case 'connection':
           return { ...d, connections: d.connections.filter((c) => !ids.has(c.id)) };
+        case 'led':
+          return { ...d, ledStrips: d.ledStrips.filter((l) => !ids.has(l.id)) };
       }
     });
     set({ selection: null });
@@ -303,6 +316,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             return { ...a, id, x: a.x + offset, y: a.y + offset, points: a.points?.map((v) => v + offset) };
           });
         return { ...d, annotations: [...d.annotations, ...copies] };
+      }
+      if (sel.kind === 'led') {
+        const copies: LedStrip[] = d.ledStrips
+          .filter((l) => ids.has(l.id))
+          .map((l) => {
+            const id = createId('led');
+            newIds.push(id);
+            return { ...l, id, points: l.points.map((v) => v + offset) };
+          });
+        return { ...d, ledStrips: [...d.ledStrips, ...copies] };
       }
       if (sel.kind === 'wall') {
         const copies: Wall[] = d.walls
@@ -337,6 +360,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       clipboard: {
         symbols: selection.kind === 'symbol' ? doc.symbols.filter((s) => ids.has(s.id)) : [],
         annotations: selection.kind === 'annotation' ? doc.annotations.filter((a) => ids.has(a.id)) : [],
+        ledStrips: selection.kind === 'led' ? doc.ledStrips.filter((l) => ids.has(l.id)) : [],
       },
     });
   },
@@ -352,12 +376,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       y: a.y + offset,
       points: a.points?.map((v) => v + offset),
     }));
-    if (!symbols.length && !annotations.length) return;
-    get().commit((d) => ({ ...d, symbols: [...d.symbols, ...symbols], annotations: [...d.annotations, ...annotations] }));
+    const ledStrips = (clipboard.ledStrips ?? []).map((l) => ({ ...l, id: createId('led'), points: l.points.map((v) => v + offset) }));
+    if (!symbols.length && !annotations.length && !ledStrips.length) return;
+    get().commit((d) => ({
+      ...d,
+      symbols: [...d.symbols, ...symbols],
+      annotations: [...d.annotations, ...annotations],
+      ledStrips: ledStrips.length ? [...d.ledStrips, ...ledStrips] : d.ledStrips,
+    }));
     // Collage successif : décale encore la prochaine fois
     set({
-      clipboard: { symbols: symbols.map((s) => ({ ...s })), annotations: annotations.map((a) => ({ ...a })) },
-      selection: symbols.length ? { kind: 'symbol', ids: symbols.map((s) => s.id) } : { kind: 'annotation', ids: annotations.map((a) => a.id) },
+      clipboard: { symbols: symbols.map((s) => ({ ...s })), annotations: annotations.map((a) => ({ ...a })), ledStrips: ledStrips.map((l) => ({ ...l })) },
+      selection: symbols.length
+        ? { kind: 'symbol', ids: symbols.map((s) => s.id) }
+        : ledStrips.length
+          ? { kind: 'led', ids: ledStrips.map((l) => l.id) }
+          : { kind: 'annotation', ids: annotations.map((a) => a.id) },
     });
   },
 }));
@@ -371,6 +405,7 @@ function normalizeRot(r: number): number {
 export function layerOfKind(kind: SelectionKind): LayerId {
   switch (kind) {
     case 'symbol':
+    case 'led':
       return 'symbols';
     case 'connection':
       return 'connections';
@@ -398,4 +433,6 @@ export const docOps = {
   addMeasure: (m: Measure) => (d: PlanDocument) => ({ ...d, measures: [...d.measures, m] }),
   patchMeasure: (id: string, c: Partial<Measure>) => (d: PlanDocument) => ({ ...d, measures: patchById(d.measures, id, c) }),
   patchSymbol: (id: string, c: Partial<PlacedSymbol>) => (d: PlanDocument) => ({ ...d, symbols: patchById(d.symbols, id, c) }),
+  addLedStrip: (l: LedStrip) => (d: PlanDocument) => ({ ...d, ledStrips: [...d.ledStrips, l] }),
+  patchLedStrip: (id: string, c: Partial<LedStrip>) => (d: PlanDocument) => ({ ...d, ledStrips: patchById(d.ledStrips, id, c) }),
 };

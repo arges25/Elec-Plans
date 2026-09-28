@@ -8,6 +8,8 @@ import { formatDate, safeFileName } from '../../utils/format';
 import { shareOrDownload } from '../../utils/download';
 import { SymbolIcon } from '../symbols/SymbolIcon';
 import { LogoMark } from '../layout/Logo';
+import { LedStripIcon } from '../symbols/LedStripIcon';
+import { ledLegendLabel } from '../../utils/ledStrip';
 
 /**
  * APERÇU CLIENT : plan, symboles, liaisons, légende et titre uniquement
@@ -18,6 +20,9 @@ export function ClientPreviewOverlay({ project }: { project: Project | undefined
   const symbols = useEditorStore((s) => s.doc.symbols);
   const setClientPreview = useEditorStore((s) => s.setClientPreview);
   const legend = useMemo(() => buildLegend(symbols), [symbols]);
+  const ledStrips = useEditorStore((s) => s.doc.ledStrips);
+  const ppm = useEditorStore((s) => s.doc.scale?.pixelsPerMeter);
+  const ledLabel = ledLegendLabel(ledStrips, ppm);
   const [legendOpen, setLegendOpen] = useState(true);
 
   const shareImage = async () => {
@@ -57,7 +62,7 @@ export function ClientPreviewOverlay({ project }: { project: Project | undefined
           </button>
         </div>
       </div>
-      {legend.length > 0 && (
+      {(legend.length > 0 || ledLabel) && (
         <div className="absolute bottom-3 left-3 z-10 max-h-[45%] w-64 max-w-[calc(100%-1.5rem)] overflow-hidden rounded-2xl bg-white/95 shadow-lg mb-safe">
           <button
             type="button"
@@ -76,6 +81,13 @@ export function ClientPreviewOverlay({ project }: { project: Project | undefined
                   <span className="text-xs font-bold text-gray-500">× {e.count}</span>
                 </li>
               ))}
+              {ledLabel && (
+                <li className="flex items-center gap-2 py-0.5 text-sm">
+                  <LedStripIcon size={24} color={ledStrips[0].color} />
+                  <span className="flex-1 text-gray-800">{ledLabel}</span>
+                  <span className="text-xs font-bold text-gray-500">× {ledStrips.length}</span>
+                </li>
+              )}
             </ul>
           )}
         </div>

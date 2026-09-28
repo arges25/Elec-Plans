@@ -56,37 +56,80 @@ export const wallStem = (fromY: number): SymbolPrimitive => line(0, WALL_BACK, 0
 /* Prises                                                              */
 /* ------------------------------------------------------------------ */
 
-/** Prise de courant : demi-cercle dos au mur + trait de terre. */
-export function socketGlyph(cx = 0, r = 11, earth = true, fillArc: PrimitiveFill = 'none'): SymbolPrimitive[] {
-  const y = WALL_BACK;
-  const shapes: SymbolPrimitive[] = [p(`M${cx - r} ${y}A${r} ${r} 0 0 0 ${cx + r} ${y}Z`, fillArc)];
-  if (earth) {
-    const apex = y + r;
-    shapes.push(line(cx, apex, cx, apex + 3.5), line(cx - r * 0.6, apex + 3.5, cx + r * 0.6, apex + 3.5));
-  }
+/** Épaisseur des traits des prises : un peu plus forte pour rester lisible en petit. */
+const SW_S = 2.5;
+/** Hauteur (y) du sommet de l'arc des prises, où arrive le raccordement au mur. */
+const SOCKET_TOP = -9;
+
+/**
+ * Prise de courant (symbole normalisé des plans d'installation, NF EN 60617) :
+ * trait de raccordement au mur, barre de terre (2P+T) tangente au sommet,
+ * arc de la prise ouvert côté pièce.
+ */
+export function socketGlyph(cx = 0, r = 10, earth = true, fillArc: PrimitiveFill = 'white'): SymbolPrimitive[] {
+  const top = SOCKET_TOP;
+  const base = top + r;
+  const shapes: SymbolPrimitive[] = [
+    line(cx, WALL_BACK, cx, top, SW_S),
+    p(`M${cx - r} ${base}A${r} ${r} 0 0 1 ${cx + r} ${base}${fillArc === 'color' ? 'Z' : ''}`, fillArc, SW_S),
+  ];
+  if (earth) shapes.push(line(round(cx - r * 0.85), top, round(cx + r * 0.85), top, SW_S));
   return shapes;
 }
 
 export function socket(label?: string, opts: { fill?: PrimitiveFill; earth?: boolean } = {}): SymbolPrimitive[] {
-  const shapes = socketGlyph(0, 11, opts.earth ?? true, opts.fill ?? 'none');
+  const shapes = socketGlyph(0, 10, opts.earth ?? true, opts.fill ?? 'white');
   if (label) shapes.push(t(label, 0, 9, label.length > 3 ? 6.5 : 8));
   return shapes;
 }
 
+/** Bloc de prises : une barre de terre commune, un arc par prise. */
 export function multiSocket(count: 2 | 3 | 4): SymbolPrimitive[] {
-  if (count === 2) return [...socketGlyph(-8.5, 7.5), ...socketGlyph(8.5, 7.5)];
-  const r = count === 3 ? 6 : 4.6;
-  const step = count === 3 ? 12.5 : 9.6;
+  const r = count === 2 ? 7.5 : count === 3 ? 5.6 : 4.4;
+  const step = count === 2 ? 16 : count === 3 ? 12 : 9.4;
   const start = -((count - 1) * step) / 2;
-  const shapes: SymbolPrimitive[] = [];
-  for (let i = 0; i < count; i++) shapes.push(...socketGlyph(start + i * step, r));
+  const half = start - r;
+  const shapes: SymbolPrimitive[] = [line(0, WALL_BACK, 0, SOCKET_TOP, SW_S), line(round(half), SOCKET_TOP, round(-half), SOCKET_TOP, SW_S)];
+  for (let i = 0; i < count; i++) {
+    const cx = round(start + i * step);
+    shapes.push(p(`M${round(cx - r)} ${SOCKET_TOP + r}A${r} ${r} 0 0 1 ${round(cx + r)} ${SOCKET_TOP + r}`, 'white', SW_S));
+  }
   return shapes;
 }
 
-/** Prise de communication : cadre contre le mur + texte. */
+/** Prise commandée : prise 2P+T + petit interrupteur (rond, levier, trait) accolé. */
+export function switchedSocket(): SymbolPrimitive[] {
+  return [...socketGlyph(-4), c(12, -5, 2.6, 'white', 1.9), line(13.5, -2.9, 17.8, 3.3, 1.9), line(17.8, 3.3, 20.8, 1.2, 1.9)];
+}
+
+/** Prise étanche : prise 2P+T + goutte d'eau. */
+export function waterproofSocket(): SymbolPrimitive[] {
+  return [...socketGlyph(), filled('M0 -6.2C1.7 -3.7 3 -2.1 3 -0.5A3 3 0 0 1 -3 -0.5C-3 -2.1 -1.7 -3.7 0 -6.2Z'), t('IP', 0, 9, 6)];
+}
+
+/** Pictogramme de prise informatique RJ45 (face du connecteur). */
+function rj45Port(cy: number): SymbolPrimitive[] {
+  return [p(`M-6 ${cy - 4}H6V${cy + 2}H3V${cy + 4}H-3V${cy + 2}H-6Z`, 'none', 1.6), line(-3, cy - 1.5, 3, cy - 1.5, 1.2)];
+}
+
+/** Pictogramme de prise coaxiale (TV / SAT). */
+function coaxPort(cy: number): SymbolPrimitive[] {
+  return [c(0, cy, 4.8, 'none', 1.6), dot(0, cy, 1.7)];
+}
+
+/**
+ * Prise de communication : boîtier contre le mur, pictogramme lisible
+ * (RJ45, coaxial) ou texte, et libellé sous le boîtier.
+ */
 export function commOutlet(label: string, sub?: string): SymbolPrimitive[] {
-  const shapes: SymbolPrimitive[] = [p(`M-13 ${WALL_BACK}L0 ${WALL_BACK + 14}L13 ${WALL_BACK}Z`, 'white'), t(label, 0, 5, label.length > 3 ? 6.5 : 7.5)];
-  if (sub) shapes.push(t(sub, 0, 13, 6));
+  const shapes: SymbolPrimitive[] = [rect(-12, WALL_BACK, 24, 15, 'white', 2.2)];
+  const cy = WALL_BACK + 7.5;
+  if (label === 'RJ45') shapes.push(...rj45Port(cy));
+  else if (label === 'TV' || label === 'SAT' || label === 'COAX') shapes.push(...coaxPort(cy));
+  else shapes.push(t(label, 0, cy + 0.3, label.length > 2 ? 7 : 8.5));
+  const iconic = label === 'RJ45' || label === 'TV' || label === 'SAT' || label === 'COAX';
+  if (iconic) shapes.push(t(label, 0, 5.5, label.length > 3 ? 6.5 : 7.5));
+  if (sub) shapes.push(t(sub, 0, iconic ? 12.5 : 6, 5.5));
   return shapes;
 }
 
@@ -264,11 +307,37 @@ export function cameraGlyph(): SymbolPrimitive[] {
   return [line(0, WALL_BACK, 0, -10), rect(-11, -10, 16, 11, 'white'), p('M5 -7L12 -10V1L5 -2Z', 'white'), dot(-3, -4.5, 2)];
 }
 
+/** Détecteur de mouvement mural : boîtier contre le mur, cône et ondes de détection. */
 export function motionGlyph(): SymbolPrimitive[] {
   return [
-    p(`M-9 ${WALL_BACK}A9 9 0 0 0 9 ${WALL_BACK}Z`, 'white'),
-    p(`M-13 ${WALL_BACK + 6}Q0 ${WALL_BACK + 22} 13 ${WALL_BACK + 6}`, 'none', 1.6),
-    p(`M-16 ${WALL_BACK + 10}Q0 ${WALL_BACK + 30} 16 ${WALL_BACK + 10}`, 'none', 1.6),
+    line(-5, -7.8, -14.5, 0.2, 1.4),
+    line(5, -7.8, 14.5, 0.2, 1.4),
+    p('M-6.4 -4.3A10 10 0 0 0 6.4 -4.3', 'none', 1.8),
+    p('M-9.6 -0.5A15 15 0 0 0 9.6 -0.5', 'none', 1.8),
+    p(`M-7 ${WALL_BACK}A7 7 0 0 0 7 ${WALL_BACK}Z`, 'white', 2.2),
+    dot(0, -12.2, 1.6),
+  ];
+}
+
+/** Détecteur de présence (plafond, 360°) : « P » entouré d'ondes de chaque côté. */
+export function presenceGlyph(): SymbolPrimitive[] {
+  return [
+    c(0, 0, 8, 'white', 2.2),
+    t('P', 0, 0.4, 9),
+    p('M-11.5 -6.5A13 13 0 0 0 -11.5 6.5', 'none', 1.8),
+    p('M-15.5 -9A18 18 0 0 0 -15.5 9', 'none', 1.8),
+    p('M11.5 -6.5A13 13 0 0 1 11.5 6.5', 'none', 1.8),
+    p('M15.5 -9A18 18 0 0 1 15.5 9', 'none', 1.8),
+  ];
+}
+
+/** Écran de commande domotique mural : écran avec pictogramme maison. */
+export function homeScreenGlyph(): SymbolPrimitive[] {
+  return [
+    rect(-15, WALL_BACK, 30, 22, 'white', 2.2),
+    rect(-11.5, -12.5, 23, 13.5, 'none', 1.3),
+    filled('M0 -10.5L6 -5.2H4.2V-1H-4.2V-5.2H-6Z'),
+    dot(0, 3.2, 1.2),
   ];
 }
 

@@ -15,6 +15,7 @@ import {
   Type,
 } from 'lucide-react';
 import type { EditorTool } from '../../store/editorStore';
+import { LedStripIcon } from '../symbols/LedStripIcon';
 
 export interface ToolDef {
   id: EditorTool;
@@ -35,6 +36,13 @@ export const TOOL_DEFS: ToolDef[] = [
     group: 'base',
   },
   { id: 'connect', label: 'Relier', icon: <Cable className={I} aria-hidden />, hint: 'Touchez la commande puis les éléments à relier.', group: 'base' },
+  {
+    id: 'led',
+    label: 'Bande LED',
+    icon: <LedStripIcon size={22} />,
+    hint: 'Touchez le départ puis glissez le doigt. Relâchez pour poser un angle, continuez le long des murs.',
+    group: 'base',
+  },
   {
     id: 'wall',
     label: 'Mur',

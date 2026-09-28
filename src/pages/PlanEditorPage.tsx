@@ -16,7 +16,7 @@ import { PlanStage } from '../components/editor/PlanStage';
 import { EditorHeader } from '../components/editor/EditorHeader';
 import { EditorToolbar } from '../components/editor/EditorToolbar';
 import { ZoomControls } from '../components/editor/ZoomControls';
-import { ConnectModeBar, PlaceModeBar, SelectionMenu, ToolHintBar } from '../components/editor/ModeBars';
+import { ConnectModeBar, LedModeBar, PlaceModeBar, SelectionMenu, ToolHintBar } from '../components/editor/ModeBars';
 import { MobileEditorBar, type QuickGroup } from '../components/editor/MobileEditorBar';
 import { QuickSymbolsSheet } from '../components/editor/QuickSymbolsSheet';
 import { CorrectionBar } from '../components/editor/CorrectionBar';
@@ -28,6 +28,7 @@ import { LegendPanel } from '../components/editor/LegendPanel';
 import { SymbolLibrary } from '../components/symbols/SymbolLibrary';
 import { Sheet } from '../components/ui/Sheet';
 import { addSymbolAtCenter, beginPlacing } from '../components/editor/editorActions';
+import { startLedTool } from '../components/editor/ledActions';
 import type { ProjectSection } from '../components/layout/ProjectNav';
 
 /** Éditeur électrique (et correction du plan en mode `?mode=correction`). */
@@ -83,7 +84,7 @@ function EditorContent() {
     if (!ready) return;
     const s = useEditorStore.getState();
     const t = params.get('tool');
-    if (t === 'wall' || t === 'connect' || t === 'door' || t === 'window') s.setTool(t);
+    if (t === 'wall' || t === 'connect' || t === 'door' || t === 'window' || t === 'led') s.setTool(t);
     if (params.get('panel') === 'library') {
       if (desktop) s.setRightPanel('library');
       else s.openSheet('library');
@@ -197,6 +198,7 @@ function EditorContent() {
             <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex flex-col items-stretch gap-2 px-3 pr-20">
               {tool === 'place' && placeSymbolId && <PlaceModeBar />}
               {tool === 'connect' && <ConnectModeBar />}
+              {tool === 'led' && <LedModeBar />}
               <ToolHintBar />
               <div className="flex justify-center">
                 <SelectionMenu onProperties={() => openPanel('properties')} />
@@ -281,6 +283,10 @@ function EditorContent() {
         onPick={(id) => {
           beginPlacing(id);
           setQuick(null);
+        }}
+        onLedStrip={() => {
+          setQuick(null);
+          startLedTool();
         }}
         onMore={(f) => {
           setQuick(null);

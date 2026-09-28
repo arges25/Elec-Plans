@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import { useViewStore } from '../store/viewStore';
+import { finishLedTool, undoLedPoint } from '../components/editor/ledActions';
 
 function isTyping(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
@@ -34,11 +35,17 @@ export function useKeyboardShortcuts(enabled: boolean): void {
       } else if (mod && key === 'd') {
         e.preventDefault();
         st.duplicateSelection(20);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && st.tool === 'led') {
+        e.preventDefault();
+        undoLedPoint();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (st.selection) {
           e.preventDefault();
           st.deleteSelection();
         }
+      } else if (e.key === 'Enter' && st.tool === 'led') {
+        e.preventDefault();
+        finishLedTool();
       } else if (e.key === 'Escape') {
         if (st.clientPreview) st.setClientPreview(false);
         else if (st.tool !== 'select') st.setTool('select');

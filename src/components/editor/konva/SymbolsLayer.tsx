@@ -9,7 +9,7 @@ import { getSettings } from '../../../store/settingsStore';
 import { useViewStore } from '../../../store/viewStore';
 import { useGuideStore } from '../../../store/guideStore';
 import { snapSymbol, symbolUnitScale, symbolWorldSize } from '../../../utils/symbols';
-import { editorRuntime, hapticTick } from '../runtime';
+import { editorRuntime, hapticTick, isDuplicateActivation } from '../runtime';
 import { onSymbolActivate, openSymbolProperties } from '../editorActions';
 import { SymbolShapes } from './SymbolShapes';
 
@@ -146,7 +146,18 @@ export const SymbolNode = memo(function SymbolNode({ symbol, selected, draggable
   };
 
   const onTap = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+    const tool = useEditorStore.getState().tool;
+    const consumes = tool === 'select' || tool === 'connect';
+    if (isDuplicateActivation(`sym:${symbol.id}`, e.target.getStage()?.getPointerPosition() ?? null)) {
+      // Doublon du même toucher : on reproduit seulement l'arrêt de propagation
+      if (consumes) e.cancelBubble = true;
+      return;
+    }
     if (onSymbolActivate(symbol.id, e.evt)) e.cancelBubble = true;
+  };
+  const onDouble = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+    if (isDuplicateActivation(`dbl:${symbol.id}`, e.target.getStage()?.getPointerPosition() ?? null)) return;
+    openSymbolProperties(symbol.id);
   };
 
   return (
@@ -162,25 +173,31 @@ export const SymbolNode = memo(function SymbolNode({ symbol, selected, draggable
       listening={listening}
       onClick={onTap}
       onTap={onTap}
-      onDblClick={() => openSymbolProperties(symbol.id)}
-      onDblTap={() => openSymbolProperties(symbol.id)}
+      onDblClick={onDouble}
+      onDblTap={onDouble}
       onDragStart={onDragStart}
       onDragMove={onDragMove}
       onDragEnd={onDragEnd}
       onTransformEnd={onTransformEnd}
     >
       <Rect x={-21} y={-21} width={42} height={42} fill="transparent" />
-      {(selected || connectSource) && (
-        <Circle
-          radius={25}
-          stroke="#f97316"
-          strokeWidth={connectSource ? 3 : 1.5}
-          strokeScaleEnabled={false}
-          dash={connectSource ? undefined : [6, 4]}
-          fill={connectSource ? 'rgba(249,115,22,0.15)' : 'rgba(249,115,22,0.06)'}
-          listening={false}
-        />
+      {selected && !connectSource && (
+        <>
+          {/* Contour de sélection bien visible : halo + anneau orange */}
+          <Circle radius={27} fill="rgba(249,115,22,0.14)" stroke="rgba(249,115,22,0.35)" strokeWidth={8} strokeScaleEnabled={false} listening={false} />
+          <Circle
+            radius={27}
+            stroke="#f97316"
+            strokeWidth={2.5}
+            strokeScaleEnabled={false}
+            listening={false}
+            shadowColor="#f97316"
+            shadowBlur={6}
+            shadowOpacity={0.6}
+          />
+        </>
       )}
+      {connectSource && <Circle radius={25} stroke="#f97316" strokeWidth={3} strokeScaleEnabled={false} fill="rgba(249,115,22,0.15)" listening={false} />}
       <SymbolShapes shapes={def.shapes} color={color} />
     </Group>
   );

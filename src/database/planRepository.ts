@@ -25,6 +25,7 @@ export async function loadPlanDocument(plan: Plan): Promise<PlanDocument> {
     rooms: plan.vectorData.rooms ?? [],
     annotations: plan.vectorData.annotations ?? [],
     measures: plan.vectorData.measures ?? [],
+    ledStrips: plan.vectorData.ledStrips ?? [],
     scale: plan.scale,
     symbols,
     connections,
@@ -55,6 +56,7 @@ export async function savePlanDocument(planId: string, projectId: string, next: 
     prev.rooms !== next.rooms ||
     prev.annotations !== next.annotations ||
     prev.measures !== next.measures ||
+    prev.ledStrips !== next.ledStrips ||
     prev.scale !== next.scale;
   const countsChanged = !prev || prev.symbols.length !== next.symbols.length || prev.connections.length !== next.connections.length;
   const symbolTypesChanged = symbolsDiff.put.some((s) => !prev || prev.symbols.find((p) => p.id === s.id)?.symbolType !== s.symbolType);
@@ -69,6 +71,7 @@ export async function savePlanDocument(planId: string, projectId: string, next: 
           rooms: next.rooms,
           annotations: next.annotations,
           measures: next.measures,
+          ledStrips: next.ledStrips,
         },
         scale: next.scale,
         updatedAt: Date.now(),

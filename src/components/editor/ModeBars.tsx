@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Cable, Check, Copy, FlipHorizontal2, Minus, Pencil, Plus, RefreshCw, RotateCw, Settings2, Trash2, X } from 'lucide-react';
+import { Cable, Check, Copy, FlipHorizontal2, Minus, Palette, Pencil, Plus, RefreshCw, RotateCw, Settings2, Spline, Trash2, Undo2, X } from 'lucide-react';
 import type { ConnectionType } from '../../types';
 import { getSymbolDefinition } from '../../data/electricalSymbols';
 import { docOps, useEditorStore } from '../../store/editorStore';
@@ -9,6 +9,10 @@ import { Segmented } from '../ui/Field';
 import { renameRoom } from './konva/PlanLayers';
 import { toolDef } from './toolDefs';
 import { clampOpeningT } from '../../utils/openings';
+import { useLedDraftStore } from '../../store/ledDraftStore';
+import { LED_COLORS, LED_DEFAULT_LABEL, ledLength, ledLengthMeters, toFlat } from '../../utils/ledStrip';
+import { LedStripIcon } from '../symbols/LedStripIcon';
+import { finishLedTool, startLedTool, undoLedPoint } from './ledActions';
 
 function Action({ label, icon, onClick, danger, primary }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; primary?: boolean }) {
   return (
@@ -184,7 +188,103 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
       );
     case 'measure':
       return <Bar>{del}</Bar>;
+    case 'led': {
+      const strip = single ? doc.ledStrips.find((l) => l.id === single) : undefined;
+      if (!strip) return <Bar>{del}</Bar>;
+      const m = ledLengthMeters(strip, doc.scale?.pixelsPerMeter);
+      const colorIdx = LED_COLORS.findIndex((c) => c.value === strip.color);
+      const nextColor = LED_COLORS[(colorIdx + 1) % LED_COLORS.length];
+      return (
+        <div className="flex max-w-full flex-col items-center gap-1.5">
+          <p className="pointer-events-none rounded-full bg-ink-900/85 px-3 py-1 text-center text-[11px] font-semibold text-white">
+            Ronds : allonger / raccourcir · « + » : nouvel angle · 2 touchers : retirer
+          </p>
+          <Bar>
+            <span className="flex shrink-0 items-center gap-1 px-1 text-xs font-bold tabular-nums text-gray-700">
+              <LedStripIcon size={26} color={strip.color} />
+              {m !== null ? `${m.toFixed(2).replace('.', ',')} m` : 'LED'}
+            </span>
+            {!strip.closed && <Action label="Prolonger" icon={<Spline className={I} aria-hidden />} onClick={() => startLedTool(strip.id)} />}
+            <Action
+              label={LED_COLORS[colorIdx]?.label ?? 'Couleur'}
+              icon={<Palette className={I} aria-hidden style={{ color: strip.color }} />}
+              onClick={() => st.commit(docOps.patchLedStrip(strip.id, { color: nextColor.value }))}
+            />
+            <Action
+              label="Texte"
+              icon={<Pencil className={I} aria-hidden />}
+              onClick={async () => {
+                const text = await promptDialog({
+                  title: 'Texte de la bande LED',
+                  label: 'Texte affiché (la longueur est ajoutée automatiquement)',
+                  defaultValue: strip.label ?? LED_DEFAULT_LABEL,
+                  placeholder: 'LED 24 V',
+                });
+                if (text !== null) st.commit(docOps.patchLedStrip(strip.id, { label: text.trim() || undefined }));
+              }}
+            />
+            {strip.points.length >= 6 && (
+              <Action
+                label={strip.closed ? 'Ouvrir' : 'Fermer'}
+                icon={<RefreshCw className={I} aria-hidden />}
+                onClick={() => st.commit(docOps.patchLedStrip(strip.id, { closed: !strip.closed }))}
+              />
+            )}
+            <Action label="+1" icon={<Copy className={I} aria-hidden />} onClick={() => st.duplicateSelection(20)} />
+            {del}
+          </Bar>
+        </div>
+      );
+    }
   }
+}
+
+/** Barre de l'outil Bande LED : consignes, longueur, annuler le point, fermer, terminer. */
+export function LedModeBar() {
+  const points = useLedDraftStore((s) => s.points);
+  const extendId = useLedDraftStore((s) => s.extendId);
+  const ppm = useEditorStore((s) => s.doc.scale?.pixelsPerMeter);
+  const len = ledLength(toFlat(points));
+  const hint = !points.length
+    ? 'Touchez le point de départ, puis glissez le doigt le long du mur.'
+    : points.length === 1
+      ? 'Glissez (ou touchez) jusqu’au prochain angle.'
+      : 'Relâchez pour poser un angle et continuez · touchez le départ pour fermer le contour.';
+  const btn = 'inline-flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-3 text-sm font-bold';
+  return (
+    <div className="pointer-events-auto mx-auto flex w-full max-w-xl flex-col gap-2 rounded-2xl border border-brand-300 bg-white/95 p-2 shadow-xl backdrop-blur animate-pop-in">
+      <div className="flex items-center gap-2">
+        <LedStripIcon size={30} className="shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-gray-900">
+            {extendId ? 'Prolonger la bande LED' : 'Bande LED'}
+            {points.length >= 2 && ppm ? <span className="ml-2 tabular-nums text-brand-600">{(len / ppm).toFixed(2).replace('.', ',')} m</span> : null}
+          </p>
+          <p className="text-xs text-gray-600">{hint}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={undoLedPoint}
+          disabled={!points.length}
+          className={`${btn} border border-gray-300 text-gray-800 disabled:opacity-40`}
+          aria-label="Annuler le dernier point"
+        >
+          <Undo2 className="size-5" aria-hidden /> Point
+        </button>
+        {points.length >= 3 && (
+          <button type="button" onClick={() => finishLedTool({ close: true })} className={`${btn} border border-brand-400 text-brand-700`}>
+            <RefreshCw className="size-5" aria-hidden /> Fermer
+          </button>
+        )}
+        <div className="flex-1" />
+        <button type="button" onClick={() => finishLedTool()} className={`${btn} bg-green-600 text-white hover:bg-green-700`}>
+          <Check className="size-5" aria-hidden /> TERMINER
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** Barre du mode « placer » (mode répétition / placer plusieurs). */
@@ -286,7 +386,7 @@ export function ConnectModeBar() {
 export function ToolHintBar() {
   const tool = useEditorStore((s) => s.tool);
   const def = toolDef(tool);
-  if (!def || tool === 'select' || tool === 'connect' || tool === 'place') return null;
+  if (!def || tool === 'select' || tool === 'connect' || tool === 'place' || tool === 'led') return null;
   return (
     <div className="pointer-events-auto mx-auto flex max-w-xl items-center gap-2 rounded-2xl border border-gray-200 bg-white/95 p-2 pl-3 shadow-xl backdrop-blur animate-pop-in">
       <span className="text-brand-600">{def.icon}</span>
