@@ -116,3 +116,31 @@ export function mountingLabel(m: EnclosureModel['mounting']): string {
   if (m === 'flush') return 'Encastré';
   return NOT_PROVIDED;
 }
+
+export const DEVICE_KIND_LABELS: Record<DeviceProduct['kind'], string> = {
+  rcd: 'Interrupteur différentiel',
+  breaker: 'Disjoncteur',
+  teleruptor: 'Télérupteur',
+  'contactor-hc': 'Contacteur jour/nuit',
+  contactor: 'Contacteur de puissance',
+  spd: 'Parafoudre',
+  bell: 'Sonnerie modulaire',
+  'bell-transformer': 'Transformateur de sonnerie',
+  timer: 'Minuterie',
+  clock: 'Horloge programmable',
+  'load-shedder': 'Délesteur',
+  relay: 'Relais',
+  'heating-control': 'Commande de chauffage (fil pilote)',
+  'energy-meter': 'Écocompteur / compteur d’énergie',
+  socket: 'Prise de courant modulaire',
+  blank: 'Obturateur',
+  reserve: 'Emplacement réservé',
+};
+
+/** Désignation technique d'un produit (calibre, courbe, sensibilité…). */
+export function productRatingText(p: DeviceProduct): string | null {
+  if (p.kind === 'rcd') return `${p.rating} A · ${p.sensitivityMa} mA · type ${p.rcdType}`;
+  if (p.kind === 'breaker') return `${p.rating} A · courbe ${p.curve}`;
+  if (p.rating) return `${p.rating} A`;
+  return null;
+}
