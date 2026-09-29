@@ -3,3 +3,6 @@
 
 /** Version de l'application (package.json), injectée au build. */
 declare const __APP_VERSION__: string;
+
+/** Publication : commit court et date de construction (ISO), injectés au build. */
+declare const __APP_BUILD__: { commit: string; date: string };

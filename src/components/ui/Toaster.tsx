@@ -1,5 +1,6 @@
 import { CheckCircle2, Info, XCircle, X } from 'lucide-react';
 import { useToastStore } from '../../store/toastStore';
+import { UpdateNotice } from '../../pwa/UpdateNotice';
 
 const ICONS = {
   success: <CheckCircle2 className="size-5 text-green-400" aria-hidden />,
@@ -13,6 +14,7 @@ export function Toaster() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[80] flex flex-col items-center gap-2 px-3 pt-safe" aria-live="polite" role="status">
       <div className="h-2" />
+      <UpdateNotice />
       {toasts.map((t) => (
         <div
           key={t.id}
