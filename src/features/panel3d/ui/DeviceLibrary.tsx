@@ -9,6 +9,7 @@ import { usePanelEditor } from '../store/panelEditorStore';
 import { trackDragOnWindow, useDragStore } from './dragStore';
 import { DeviceThumb } from './DeviceThumb';
 import { toast } from '../../../store/toastStore';
+import { useUiStore } from './uiStore';
 
 /**
  * Bibliothèque d'appareils de la marque du tableau.
@@ -122,12 +123,12 @@ function LibraryItem({ product, armed, showBrand, onChoose, onAddAuto }: ItemPro
 }
 
 export function DeviceLibrary({ onChosen }: { onChosen?: () => void }) {
-  const project = usePanelEditor((s) => s.project)!;
+  const doc = usePanelEditor((s) => s.doc)!;
   const armedId = usePanelEditor((s) => s.armedProductId);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<DeviceCategory | 'all'>('all');
 
-  const devices = useMemo(() => listDevices(project.brand, project.showAllBrands), [project.brand, project.showAllBrands]);
+  const devices = useMemo(() => listDevices(doc.brand, doc.showAllBrands), [doc.brand, doc.showAllBrands]);
   const filtered = useMemo(() => {
     const q = normalizeText(query);
     return devices.filter((d) => (category === 'all' || d.category === category) && (!q || normalizeText(`${d.shortName} ${d.fullName} ${d.reference ?? ''} ${brandName(d.brand)}`).includes(q)));
@@ -143,7 +144,7 @@ export function DeviceLibrary({ onChosen }: { onChosen?: () => void }) {
     const res = usePanelEditor.getState().addDeviceAuto(p.id);
     if (!res.ok) toast.error(res.message ?? 'Impossible d’ajouter l’appareil');
     else {
-      toast.success(`${p.shortName} ajouté`);
+      if (res.id) useUiStore.getState().focusDevice(res.id);
       onChosen?.();
     }
   };
@@ -187,7 +188,7 @@ export function DeviceLibrary({ onChosen }: { onChosen?: () => void }) {
               <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{CATEGORY_LABELS[cat]}</h3>
               <div className="space-y-1.5">
                 {items.map((p) => (
-                  <LibraryItem key={p.id} product={p} armed={armedId === p.id} showBrand={project.showAllBrands} onChoose={choose} onAddAuto={addAuto} />
+                  <LibraryItem key={p.id} product={p} armed={armedId === p.id} showBrand={doc.showAllBrands} onChoose={choose} onAddAuto={addAuto} />
                 ))}
               </div>
             </section>

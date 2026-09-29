@@ -11,14 +11,14 @@ function fmt(n: number): string {
 
 /** Onglet 4 — Nomenclature : appareils identiques regroupés. */
 export function BomTab() {
-  const project = usePanelEditor((s) => s.project)!;
+  const project = usePanelEditor((s) => s.doc)!;
   const enc = getEnclosure(project.enclosureId)!;
   const lines = buildBom(project.devices);
   const totalModules = lines.reduce((s, l) => s + l.totalModules, 0);
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
 
   const copy = async () => {
-    const head = `${project.name}\nCoffret : ${brandName(enc.brand)} ${enc.name} (${enc.reference ?? REFERENCE_NOT_PROVIDED})\n`;
+    const head = `${project.projectName} — ${project.title}\nCoffret : ${brandName(enc.brand)} ${enc.name} (${enc.reference ?? REFERENCE_NOT_PROVIDED})\n`;
     try {
       await navigator.clipboard.writeText(`${head}\n${bomText(lines)}`);
       toast.success('Nomenclature copiée');

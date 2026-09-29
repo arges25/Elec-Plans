@@ -151,6 +151,8 @@ export interface LabelZone {
   start: number;
   width: number;
   label: string;
+  shortLabel: string;
+  circuitRef: string;
   icon: string | null;
   style: LabelStyle;
 }
@@ -177,6 +179,8 @@ export function labelZones(devices: PlacedDevice[], row: number, defaultStyle: L
       start: d.startModule,
       width: d.moduleWidth,
       label: d.label,
+      shortLabel: d.shortLabel,
+      circuitRef: d.circuitRef,
       icon: d.icon,
       style: d.labelStyle ?? defaultStyle,
     });

@@ -52,7 +52,7 @@ export function fitLabelText(
   boxWidthMm: number,
   boxHeightMm: number,
   baseFontPt: number,
-  maxLines: 1 | 2,
+  maxLines: 1 | 2 | 3,
   measure: MeasureFn = approxMeasure,
   bold = true,
   minRatio = 0.62,
@@ -65,9 +65,10 @@ export function fitLabelText(
   for (let size = baseFontPt; size >= minSize - 1e-9; size -= 0.25) {
     const heightFor = (n: number) => n * size * PT_TO_MM * lineHeight;
     if (measure(clean, size, bold) <= boxWidthMm && heightFor(1) <= boxHeightMm) return { lines: [clean], fontSizePt: size, truncated: false };
-    if (maxLines === 2 && heightFor(2) <= boxHeightMm) {
+    if (maxLines >= 2) {
       const lines = wrap(words, boxWidthMm, size, measure, bold);
-      if (lines.length <= 2 && lines.every((l) => measure(l, size, bold) <= boxWidthMm)) return { lines, fontSizePt: size, truncated: false };
+      if (lines.length <= maxLines && heightFor(lines.length) <= boxHeightMm && lines.every((l) => measure(l, size, bold) <= boxWidthMm))
+        return { lines, fontSizePt: size, truncated: false };
     }
   }
   // Dernier recours : taille minimale (réduite si la hauteur l'exige) + troncature « … »
@@ -79,12 +80,13 @@ export function fitLabelText(
     while (t.length > 1 && measure(`${t}…`, size, bold) > boxWidthMm) t = t.slice(0, -1);
     return `${t.trimEnd()}…`;
   };
-  const twoLines = maxLines === 2 && 2 * size * PT_TO_MM * lineHeight <= boxHeightMm;
-  if (!twoLines) return { lines: [truncate(clean)], fontSizePt: size, truncated: true };
+  let n: number = maxLines;
+  while (n > 1 && n * size * PT_TO_MM * lineHeight > boxHeightMm) n -= 1;
+  if (n <= 1) return { lines: [truncate(clean)], fontSizePt: size, truncated: true };
   const wrapped = wrap(words, boxWidthMm, size, measure, bold);
-  const first = truncate(wrapped[0] ?? '');
-  const second = wrapped.length > 1 ? truncate(wrapped.slice(1).join(' ')) : '';
-  return { lines: second ? [first, second] : [first], fontSizePt: size, truncated: true };
+  const head = wrapped.slice(0, n - 1).map(truncate);
+  const rest = wrapped.length >= n ? truncate(wrapped.slice(n - 1).join(' ')) : '';
+  return { lines: rest ? [...head, rest] : head, fontSizePt: size, truncated: true };
 }
 
 /* ------------------------------------------------------------------ */

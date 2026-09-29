@@ -132,6 +132,8 @@ export const DEVICE_KIND_LABELS: Record<DeviceProduct['kind'], string> = {
   relay: 'Relais',
   'heating-control': 'Commande de chauffage (fil pilote)',
   'energy-meter': 'Écocompteur / compteur d’énergie',
+  isolator: 'Interrupteur-sectionneur',
+  domotic: 'Module domotique',
   socket: 'Prise de courant modulaire',
   blank: 'Obturateur',
   reserve: 'Emplacement réservé',

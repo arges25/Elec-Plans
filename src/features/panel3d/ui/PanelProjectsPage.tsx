@@ -1,6 +1,7 @@
+import { useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Copy, Pencil, Plus, Tags, Trash2 } from 'lucide-react';
+import { Copy, Download, FileUp, Pencil, Plus, Tags, Trash2 } from 'lucide-react';
 import { AppHeader, PageBody } from '../../../components/layout/AppHeader';
 import { Button } from '../../../components/ui/Button';
 import { EmptyState, SectionTitle } from '../../../components/ui/Card';
@@ -13,20 +14,32 @@ import type { PanelProject } from '../types';
 import { brandName, getEnclosure } from '../data/catalog';
 import { boardGeometry } from '../engine/geometry';
 import { BoardSvg, boardViewBox } from '../render/BoardSvg';
-import { createAndSavePanelProject, deletePanelProject, duplicatePanelProject, savePanelProject } from '../persistence/panelProjectRepository';
+import {
+  PANEL_FILE_EXTENSION,
+  createAndSavePanelProject,
+  deletePanelProject,
+  duplicatePanelProject,
+  importPanelProjectFile,
+  panelProjectFile,
+  savePanelProject,
+} from '../persistence/panelProjectRepository';
+import { normalizeProject, toDoc } from '../store/projectFactory';
+import { readFileAsText, shareOrDownload } from '../../../utils/download';
 
 function Thumb({ p }: { p: PanelProject }) {
-  const enc = getEnclosure(p.enclosureId);
+  const doc = toDoc(p);
+  const enc = getEnclosure(doc.enclosureId);
   if (!enc) return null;
   const vb = boardViewBox(boardGeometry(enc));
   const h = 96;
-  return <BoardSvg project={p} enclosure={enc} uid={`t-${p.id}`} width={Math.min(120, (vb.w / vb.h) * h)} height={h} preciseMeasure={false} />;
+  return <BoardSvg doc={doc} enclosure={enc} uid={`t-${p.id}`} width={Math.min(120, (vb.w / vb.h) * h)} height={h} preciseMeasure={false} />;
 }
 
 /** Tableaux électriques enregistrés (configurateur 3D). */
 export default function PanelProjectsPage() {
   const navigate = useNavigate();
-  const projects = useLiveQuery(() => db.panelProjects.orderBy('updatedAt').reverse().toArray(), []);
+  const projects = useLiveQuery(async () => (await db.panelProjects.orderBy('updatedAt').reverse().toArray()).map((p) => normalizeProject(p as unknown as Record<string, unknown>)), []);
+  const fileRef = useRef<HTMLInputElement>(null);
   const chantiers = useLiveQuery(() => db.projects.toArray(), []);
 
   const create = async () => {
@@ -43,9 +56,32 @@ export default function PanelProjectsPage() {
         <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">
           <p className="font-bold text-slate-900">Composez le tableau, posez les appareils, nommez les circuits</p>
           <p className="mt-1 text-sm text-slate-600">Coffrets aux dimensions officielles, rails DIN au pas de 18 mm, étiquettes au-dessus des appareils, impression à l’échelle réelle.</p>
-          <Button variant="primary" className="mt-3 !bg-blue-600 hover:!bg-blue-700" icon={<Plus className="size-5" aria-hidden />} onClick={() => void create()} data-testid="new-panel-project">
-            Nouveau tableau
-          </Button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="primary" className="!bg-blue-600 hover:!bg-blue-700" icon={<Plus className="size-5" aria-hidden />} onClick={() => void create()} data-testid="new-panel-project">
+              Nouveau projet
+            </Button>
+            <Button icon={<FileUp className="size-5" aria-hidden />} onClick={() => fileRef.current?.click()}>
+              Ouvrir une sauvegarde
+            </Button>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept={`${PANEL_FILE_EXTENSION},application/json,.json`}
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              try {
+                const p = await importPanelProjectFile(await readFileAsText(f));
+                toast.success('Projet importé');
+                navigate(`/tableaux/${p.id}`);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : 'Import impossible');
+              }
+            }}
+          />
         </div>
 
         <SectionTitle>Mes tableaux</SectionTitle>
@@ -54,7 +90,8 @@ export default function PanelProjectsPage() {
         )}
         <div className="grid gap-3 sm:grid-cols-2">
           {projects?.map((p) => {
-            const enc = getEnclosure(p.enclosureId);
+            const doc = toDoc(p);
+            const enc = getEnclosure(doc.enclosureId);
             const chantier = p.projectId ? chantiers?.find((c) => c.id === p.projectId)?.name : null;
             return (
               <div key={p.id} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -64,9 +101,12 @@ export default function PanelProjectsPage() {
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate font-bold text-slate-900">{p.name}</span>
-                    <span className="block truncate text-xs text-slate-600">{enc ? `${brandName(enc.brand)} · ${enc.name}` : '—'}</span>
+                    <span className="block truncate text-xs text-slate-600">{enc ? `${brandName(enc.brand)} · ${enc.family}` : '—'}</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {p.boards.length > 1 ? `${p.boards.length} tableaux : ${p.boards.map((b) => b.title).join(', ')}` : p.boards[0].title}
+                    </span>
                     <span className="block text-xs text-slate-500">
-                      {p.devices.length} appareil(s) · modifié {formatRelativeDate(p.updatedAt)}
+                      {p.boards.reduce((n, b) => n + b.devices.length, 0)} appareil(s) · modifié {formatRelativeDate(p.updatedAt)}
                     </span>
                     {chantier && <span className="block truncate text-xs font-semibold text-blue-700">Chantier : {chantier}</span>}
                   </span>
@@ -86,6 +126,15 @@ export default function PanelProjectsPage() {
                     onClick={async () => {
                       const c = await duplicatePanelProject(p.id);
                       if (c) toast.success('Tableau dupliqué');
+                    }}
+                  />
+                  <IconButton
+                    label={`Sauvegarder ${p.name} dans un fichier`}
+                    icon={<Download className="size-4" aria-hidden />}
+                    onClick={async () => {
+                      const { blob, filename } = panelProjectFile(p);
+                      const r = await shareOrDownload(blob, filename, p.name);
+                      if (r !== 'cancelled') toast.success('Sauvegarde exportée');
                     }}
                   />
                   <IconButton

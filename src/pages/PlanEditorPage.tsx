@@ -14,6 +14,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { toast } from '../store/toastStore';
 import { PlanStage } from '../components/editor/PlanStage';
 import { EditorHeader } from '../components/editor/EditorHeader';
+import { PlanTabs } from '../components/editor/PlanTabs';
 import { EditorToolbar } from '../components/editor/EditorToolbar';
 import { ZoomControls } from '../components/editor/ZoomControls';
 import { ConnectModeBar, LedModeBar, PlaceModeBar, SelectionMenu, ToolHintBar } from '../components/editor/ModeBars';
@@ -171,6 +172,7 @@ function EditorContent() {
       {!clientPreview && (
         <EditorHeader project={project} planId={planId} desktop={desktop} correction={correction} onSection={onSection} onOpenPanel={openPanel} />
       )}
+      {!clientPreview && !correction && project && <PlanTabs project={project} planId={planId} />}
       {!desktop && !clientPreview && !correction && (
         <EditorToolbar orientation="horizontal" onLayers={() => openPanel('layers')} onLegend={() => openPanel('legend')} />
       )}

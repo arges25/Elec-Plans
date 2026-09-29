@@ -4,10 +4,11 @@ import type { Brand, EnclosureModel, PlacedDevice } from '../types';
 import { BRANDS, brandName, findEnclosure, getEnclosure, getProduct, listEnclosures, listFamilies, modulesOptions, rowsOptions } from '../data/catalog';
 import { boardGeometry } from '../engine/geometry';
 import { BoardSvg, boardViewBox } from '../render/BoardSvg';
-import { createPanelProject } from '../store/projectFactory';
+import { SchemaSvg } from '../render/SchemaSvg';
+import { previewDoc } from '../store/projectFactory';
 import { usePanelEditor } from '../store/panelEditorStore';
 import { EnclosureInfo } from './EnclosureInfo';
-import { STYLE_OPTIONS } from './LabelEditor';
+import { STYLE_OPTIONS } from './CircuitEditor';
 import { confirmDialog } from '../../../store/dialogStore';
 import { toast } from '../../../store/toastStore';
 
@@ -52,9 +53,9 @@ function Choice({ active, onClick, children, testId, label }: { active: boolean;
 
 /** Miniature du coffret vide (proportions réelles quand elles sont connues). */
 function EnclosureThumb({ enc, height }: { enc: EnclosureModel; height: number }) {
-  const preview = useMemo(() => ({ ...createPanelProject('aperçu', enc.brand), enclosureId: enc.id }), [enc]);
+  const preview = useMemo(() => previewDoc(enc.brand, enc.id), [enc]);
   const vb = boardViewBox(boardGeometry(enc));
-  return <BoardSvg project={preview} enclosure={enc} uid={`th-${enc.id}`} width={(vb.w / vb.h) * height} height={height} preciseMeasure={false} />;
+  return <BoardSvg doc={preview} enclosure={enc} uid={`th-${enc.id}`} width={(vb.w / vb.h) * height} height={height} preciseMeasure={false} />;
 }
 
 function removedMessage(removed: PlacedDevice[]): string {
@@ -63,7 +64,7 @@ function removedMessage(removed: PlacedDevice[]): string {
 }
 
 export function ConfigTab({ onDone }: { onDone: () => void }) {
-  const project = usePanelEditor((s) => s.project)!;
+  const project = usePanelEditor((s) => s.doc)!;
   const enc = getEnclosure(project.enclosureId)!;
   const families = listFamilies(project.brand);
   const mods = modulesOptions(project.brand, enc.family);
@@ -124,7 +125,7 @@ export function ConfigTab({ onDone }: { onDone: () => void }) {
               <span className="font-semibold">Afficher tous les fabricants</span>
               <span className="block text-xs text-slate-500">Bibliothèque d’appareils de toutes les marques (désactivé : marque du tableau uniquement)</span>
             </span>
-            <input type="checkbox" className="size-5 accent-blue-600" checked={project.showAllBrands} onChange={(e) => usePanelEditor.getState().setMeta({ showAllBrands: e.target.checked })} />
+            <input type="checkbox" className="size-5 accent-blue-600" checked={project.showAllBrands} onChange={(e) => usePanelEditor.getState().setSettings({ showAllBrands: e.target.checked })} />
           </label>
         </Step>
 
@@ -173,28 +174,72 @@ export function ConfigTab({ onDone }: { onDone: () => void }) {
           )}
         </Step>
 
-        <Step n={5} title="Étiquettes">
-          <div role="radiogroup" aria-label="Style d’étiquette par défaut" className="inline-flex w-full rounded-xl bg-slate-100 p-1">
+        <Step n={5} title="Étiquettes et circuits">
+          <p className="mb-2 text-sm font-semibold text-slate-800">Mode d’étiquette</p>
+          <div role="radiogroup" aria-label="Mode d’étiquette par défaut" className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
             {STYLE_OPTIONS.map((o) => (
               <button
                 key={o.value}
                 type="button"
                 role="radio"
                 aria-checked={project.labelStyle === o.value}
-                onClick={() => usePanelEditor.getState().setMeta({ labelStyle: o.value })}
-                className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-semibold ${project.labelStyle === o.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                onClick={() => usePanelEditor.getState().setSettings({ labelStyle: o.value })}
+                className={`flex min-h-12 flex-col items-center justify-center rounded-lg px-2 ${project.labelStyle === o.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
               >
-                {o.label}
+                <span className="text-sm font-bold">{o.label}</span>
+                <span className="text-[11px]">{o.hint}</span>
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-500">Les porte-étiquettes sont placés au-dessus de chaque rangée d’appareils.</p>
+          <p className="mb-2 mt-4 text-sm font-semibold text-slate-800">Texte affiché sous les appareils</p>
+          <div role="radiogroup" aria-label="Texte affiché" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+            {(
+              [
+                ['long', 'Nom du circuit', 'ex. Prises cuisine'],
+                ['short', 'Nom court', 'ex. PC CUISINE (si renseigné)'],
+              ] as const
+            ).map(([v, l, h]) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={project.labelText === v}
+                onClick={() => usePanelEditor.getState().setSettings({ labelText: v })}
+                className={`flex min-h-12 flex-col items-center justify-center rounded-lg px-2 ${project.labelText === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+              >
+                <span className="text-sm font-bold">{l}</span>
+                <span className="text-[11px]">{h}</span>
+              </button>
+            ))}
+          </div>
+          <label className="mt-4 flex min-h-11 items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 text-sm">
+            <span>
+              <span className="font-semibold">Demander « Quel circuit ? » à la pose d’un disjoncteur</span>
+              <span className="block text-xs text-slate-500">Facultatif : vous pouvez toujours écrire vous-même le nom du circuit</span>
+            </span>
+            <input type="checkbox" className="size-5 accent-blue-600" checked={project.askCircuitOnDrop} onChange={(e) => usePanelEditor.getState().setSettings({ askCircuitOnDrop: e.target.checked })} />
+          </label>
         </Step>
       </div>
 
       <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
+        <label className="block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Titre du tableau</span>
+          <input
+            value={project.title}
+            onChange={(e) => usePanelEditor.getState().setBoardMeta({ title: e.target.value })}
+            className="min-h-11 w-full rounded-lg border border-slate-300 px-3 font-bold uppercase outline-none focus:border-blue-500"
+            aria-label="Titre du tableau"
+            data-testid="config-title"
+          />
+          <span className="mt-1 block text-xs text-slate-500">ex. TABLEAU PRINCIPAL, TABLEAU GARAGE, TABLEAU ÉTAGE…</span>
+        </label>
         <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-slate-200 p-3">
-          <BoardSvg project={project} enclosure={enc} uid="cfg" width="100%" height={Math.min(420, 110 + enc.rows * 80)} />
+          {project.view === 'schema' ? (
+            <SchemaSvg doc={project} enclosure={enc} uid="cfg" width="100%" className="h-auto w-full rounded bg-white" />
+          ) : (
+            <BoardSvg doc={project} enclosure={enc} uid="cfg" width="100%" height={Math.min(420, 110 + enc.rows * 80)} />
+          )}
         </div>
         <EnclosureInfo enclosure={enc} />
         <button type="button" onClick={onDone} className="min-h-12 w-full rounded-xl bg-blue-600 font-semibold text-white shadow hover:bg-blue-700" data-testid="config-next">

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { PlacedDevice } from '../features/panel3d/types';
-import { createPanelProject } from '../features/panel3d/store/projectFactory';
+import { createPanelProject, toDoc } from '../features/panel3d/store/projectFactory';
+import type { Brand } from '../features/panel3d/types';
+
+const docOf = (brand: Brand, enclosureId: string, devices: PlacedDevice[] = [], name = 'Maison') => {
+  const p = createPanelProject(name, brand);
+  return toDoc(p, { ...p.boards[0], enclosureId, devices });
+};
 import { labelZones } from '../features/panel3d/engine/placement';
 import { layoutLabel } from '../features/panel3d/render/LabelCell';
 import {
@@ -21,9 +27,12 @@ const dev = (id: string, row: number, start: number, width = 1, extra: Partial<P
   row,
   startModule: start,
   moduleWidth: width,
+  circuitRef: '',
   label: '',
+  shortLabel: '',
   icon: null,
   labelStyle: null,
+  notes: '',
   mergedWithPrev: false,
   linkedComponents: [],
   ...extra,
@@ -31,8 +40,7 @@ const dev = (id: string, row: number, start: number, width = 1, extra: Partial<P
 
 describe('Impression des étiquettes en millimètres', () => {
   it('13 modules : bandeau de 234 mm, A4 paysage, zones à la largeur des appareils', () => {
-    const p = { ...createPanelProject('Maison', 'legrand'), enclosureId: 'legrand-drivia13-2r' };
-    p.devices = [dev('a', 0, 0, 2, { label: 'Différentiel' }), dev('b', 0, 2, 1, { label: 'Four', icon: 'four' }), dev('c', 1, 4.5, 2.5)];
+    const p = docOf('legrand', 'legrand-drivia13-2r', [dev('a', 0, 0, 2, { label: 'Différentiel' }), dev('b', 0, 2, 1, { label: 'Four', icon: 'four', circuitRef: '7' }), dev('c', 1, 4.5, 2.5)]);
     const sheet = layoutSheet(p);
     expect(sheet.orientation).toBe('landscape');
     expect(sheet.pageWidthMm).toBe(297);
@@ -45,13 +53,16 @@ describe('Impression des étiquettes en millimètres', () => {
     ]);
     // Prise 2,5 modules en position 4,5 : 45 mm de large à 81 mm du bord
     expect(strips[1].piece.zones[0]).toMatchObject({ x: 81, w: 45 });
+    // Le repère accompagne l'étiquette imprimée
+    expect(strips[0].piece.zones[1]).toMatchObject({ label: 'Four', circuitRef: '7' });
   });
 
   it('18 modules (324 mm) : bandeau coupé entre deux étiquettes', () => {
-    const p = { ...createPanelProject('Grand', 'legrand'), enclosureId: 'legrand-drivia18-4r' };
     // Différentiel à cheval sur la limite de 15 modules (277 mm / 18 mm)
-    p.devices = [dev('a', 0, 0, 14), dev('b', 0, 14, 2), dev('c', 0, 16, 2)];
+    const p = docOf('legrand', 'legrand-drivia18-4r', [dev('a', 0, 0, 14), dev('b', 0, 14, 2), dev('c', 0, 16, 2)], 'Grand');
     const pieces = stripPieces(p, 277);
+    // Rangées vides : aucune étiquette imprimée
+    expect(new Set(pieces.map((x) => x.row))).toEqual(new Set([0]));
     const row0 = pieces.filter((x) => x.row === 0);
     expect(row0.map((x) => [x.startModule, x.endModule])).toEqual([
       [0, 14],
@@ -80,8 +91,8 @@ describe('Impression des étiquettes en millimètres', () => {
   });
 
   it('en-tête : projet, marque, gamme et référence (jamais inventée)', () => {
-    const p = { ...createPanelProject('Maison Martin', 'schneider'), enclosureId: 'schneider-resi9-13-2r' };
-    expect(panelHeader(p)).toBe('Maison Martin — Schneider Electric Resi9 coffret en saillie 2 rangées de 13 modules — R9H13402');
+    const p = docOf('schneider', 'schneider-resi9-13-2r', [], 'Maison Martin');
+    expect(panelHeader(p)).toBe('Maison Martin — TABLEAU PRINCIPAL — Schneider Electric Resi9 coffret en saillie 2 rangées de 13 modules — R9H13402');
   });
 });
 
