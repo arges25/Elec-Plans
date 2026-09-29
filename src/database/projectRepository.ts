@@ -1,7 +1,7 @@
 import type { FloorType, Plan, Project, ProjectStats } from '../types';
 import { getSymbolDefinition } from '../data/electricalSymbols';
 import { createId } from '../utils/id';
-import { createPlan, floorLabel } from '../utils/planFactory';
+import { createPlan, floorLabel, floorTypeFromName } from '../utils/planFactory';
 import { db } from './db';
 import { createPanelForProject } from './panelRepository';
 
@@ -116,6 +116,38 @@ export async function addFloor(projectId: string, type: FloorType, customName?: 
     });
   });
   return plan;
+}
+
+/** Ajoute un plan nommé librement (« Étage 2 », « Garage », « Extension »…). */
+export async function addNamedFloor(projectId: string, name: string): Promise<Plan> {
+  const project = await db.projects.get(projectId);
+  if (!project) throw new Error('Projet introuvable');
+  const plans = await getProjectPlans(projectId);
+  const clean = name.trim() || `Plan ${plans.length + 1}`;
+  const type = floorTypeFromName(clean);
+  const plan = createPlan(projectId, clean, type, plans.length);
+  await db.transaction('rw', [db.projects, db.plans], async () => {
+    await db.plans.add(plan);
+    await db.projects.update(projectId, {
+      floors: [...project.floors, { planId: plan.id, name: clean, type }],
+      updatedAt: Date.now(),
+    });
+  });
+  return plan;
+}
+
+/** Nouvel ordre des plans du chantier (onglets). */
+export async function reorderFloors(projectId: string, planIds: string[]): Promise<void> {
+  const project = await db.projects.get(projectId);
+  if (!project) return;
+  const byId = new Map(project.floors.map((f) => [f.planId, f]));
+  const floors = planIds.map((id) => byId.get(id)).filter((f): f is NonNullable<typeof f> => Boolean(f));
+  // Les plans absents de la liste gardent leur place à la fin
+  for (const f of project.floors) if (!planIds.includes(f.planId)) floors.push(f);
+  await db.transaction('rw', [db.projects, db.plans], async () => {
+    await db.projects.update(projectId, { floors, updatedAt: Date.now() });
+    await Promise.all(floors.map((f, i) => db.plans.update(f.planId, { order: i })));
+  });
 }
 
 export async function renameFloor(projectId: string, planId: string, name: string): Promise<void> {
