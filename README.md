@@ -176,6 +176,7 @@ git push -u origin main
 - Manifest : nom **MG Elec & Plans**, nom court **MG Elec**, affichage `standalone`, orientation `portrait-primary`, couleur de thème `#111827`, fond `#ffffff`, icônes 192 / 512 / maskable 512.
 - Service worker (Workbox via `vite-plugin-pwa`) : toute l’application est mise en cache à la première visite. OpenCV.js (≈ 13 Mo) n’est **pas** pré-chargé : il est mis en cache à sa première utilisation (ou via *Réglages → Croquis → Plan → Préparer*).
 - **Mises à jour** : l’application recherche une nouvelle version au lancement, à chaque retour au premier plan (application reprise depuis l’arrière-plan), à la reconnexion et toutes les 30 minutes. Un bandeau orange **« Nouvelle version disponible »** reste affiché jusqu’à ce que l’on touche **Mettre à jour** (la sauvegarde en cours est terminée avant le rechargement ; les projets sont conservés) ou **Plus tard**.
+- Si une nouvelle version a déjà été téléchargée lors d’une utilisation précédente, elle est installée automatiquement à l’ouverture suivante (fermer / rouvrir l’application suffit). Après chaque mise à jour, le message **« Application mise à jour ✓ »** le confirme.
 - *Réglages → Application → Mise à jour* : version installée (date de publication et commit) et bouton **Rechercher** pour vérifier à la demande.
 
 ### Installation sur iPhone / iPad (Safari)

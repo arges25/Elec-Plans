@@ -61,10 +61,48 @@ export async function installUpdate(): Promise<void> {
   else window.location.reload();
 }
 
+const AUTO_APPLY_KEY = 'mg-update-auto-applied-at';
+const LAST_BUILD_KEY = 'mg-last-build';
+
+/**
+ * Au lancement : si une nouvelle version a déjà été téléchargée lors d'une utilisation précédente
+ * (elle attend depuis), elle est installée tout de suite — fermer / rouvrir l'application suffit.
+ * Une seule tentative par minute, pour ne jamais recharger en boucle.
+ */
+export function autoApplyWaitingUpdate(reg: ServiceWorkerRegistration | undefined): boolean {
+  if (!reg?.waiting || !navigator.serviceWorker?.controller) return false;
+  try {
+    const last = Number(sessionStorage.getItem(AUTO_APPLY_KEY) ?? 0);
+    if (Date.now() - last < 60_000) return false;
+    sessionStorage.setItem(AUTO_APPLY_KEY, String(Date.now()));
+  } catch {
+    return false;
+  }
+  void installUpdate();
+  return true;
+}
+
+/** Après une mise à jour (version différente de la dernière ouverte) : « Application mise à jour ✓ ». */
+export function takeUpdateAnnouncement(): string | null {
+  const current = `${__APP_BUILD__.commit}|${__APP_BUILD__.date}`;
+  try {
+    const previous = localStorage.getItem(LAST_BUILD_KEY);
+    localStorage.setItem(LAST_BUILD_KEY, current);
+    // Sans version mémorisée : première ouverture après installation (page pas encore gérée par le
+    // service worker), ou mise à jour depuis une version antérieure à ce mécanisme (page déjà gérée).
+    const updated = previous ? previous !== current : Boolean(navigator.serviceWorker?.controller);
+    return updated ? `Application mise à jour ✓ (version du ${buildDate()})` : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildDate(): string {
+  return new Date(__APP_BUILD__.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 /** « Version 1.0.0 du 29/09/2026 à 23:33 (f3871be) » */
 export function buildLabel(): string {
-  const d = new Date(__APP_BUILD__.date);
-  const date = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  return `Version ${__APP_VERSION__} du ${date} à ${time} (${__APP_BUILD__.commit})`;
+  const time = new Date(__APP_BUILD__.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `Version ${__APP_VERSION__} du ${buildDate()} à ${time} (${__APP_BUILD__.commit})`;
 }
