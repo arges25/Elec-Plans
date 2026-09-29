@@ -175,8 +175,11 @@ git push -u origin main
 
 - Manifest : nom **MG Elec & Plans**, nom court **MG Elec**, affichage `standalone`, orientation `portrait-primary`, couleur de thème `#111827`, fond `#ffffff`, icônes 192 / 512 / maskable 512.
 - Service worker (Workbox via `vite-plugin-pwa`) : toute l’application est mise en cache à la première visite. OpenCV.js (≈ 13 Mo) n’est **pas** pré-chargé : il est mis en cache à sa première utilisation (ou via *Réglages → Croquis → Plan → Préparer*).
-- **Mises à jour** : l’application recherche une nouvelle version au lancement, à chaque retour au premier plan (application reprise depuis l’arrière-plan), à la reconnexion et toutes les 30 minutes. Un bandeau orange **« Nouvelle version disponible »** reste affiché jusqu’à ce que l’on touche **Mettre à jour** (la sauvegarde en cours est terminée avant le rechargement ; les projets sont conservés) ou **Plus tard**.
-- Si une nouvelle version a déjà été téléchargée lors d’une utilisation précédente, elle est installée automatiquement à l’ouverture suivante (fermer / rouvrir l’application suffit). Après chaque mise à jour, le message **« Application mise à jour ✓ »** le confirme.
+- **Mises à jour** : une nouvelle version prend la main dès qu’elle est téléchargée (pas de version « en attente » : sur iPhone, l’application n’est presque jamais complètement fermée). La recherche a lieu au lancement, à chaque retour au premier plan, à la reconnexion et toutes les 30 minutes.
+  - Application ouverte : bandeau orange **« Nouvelle version disponible »** → **Mettre à jour** (la sauvegarde en cours est terminée avant le rechargement ; les projets sont conservés), sinon rechargement automatique au prochain retour dans l’application.
+  - Pages ouvertes avec une ancienne version (qui ne savent pas se recharger seules) : rechargées par le service worker (`public/sw-takeover.js`).
+  - Filet de sécurité : `version.json` (jamais mis en cache) est comparé à la version de l’application ; si le service worker ne récupère pas la version en ligne, **Mettre à jour** efface la copie hors connexion (jamais les projets ni les réglages) et recharge.
+  - Après chaque mise à jour, le message **« Application mise à jour ✓ »** le confirme.
 - *Réglages → Application → Mise à jour* : version installée (date de publication et commit) et bouton **Rechercher** pour vérifier à la demande.
 
 ### Installation sur iPhone / iPad (Safari)

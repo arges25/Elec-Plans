@@ -1,35 +1,59 @@
 import { create } from 'zustand';
 import { useSaveStatus } from '../store/saveStatusStore';
 
-export type UpdateCheckResult = 'available' | 'up-to-date' | 'offline' | 'unavailable';
+export type UpdateCheckResult = 'available' | 'downloading' | 'up-to-date' | 'offline' | 'unavailable';
 
 interface UpdateState {
-  /** Une nouvelle version est téléchargée et attend d'être appliquée. */
+  /** La nouvelle version est prête : il reste à recharger l'application. */
   needRefresh: boolean;
+  /**
+   * La version en ligne est différente mais le service worker ne l'a pas récupérée :
+   * « Mettre à jour » repart de zéro (copie hors connexion effacée, projets conservés).
+   */
+  hardReset: boolean;
   /** L'utilisateur a choisi « Plus tard » : le bandeau est masqué jusqu'au prochain lancement. */
   dismissed: boolean;
   checking: boolean;
   applying: boolean;
 }
 
-export const useUpdateStore = create<UpdateState>(() => ({ needRefresh: false, dismissed: false, checking: false, applying: false }));
+export const useUpdateStore = create<UpdateState>(() => ({ needRefresh: false, hardReset: false, dismissed: false, checking: false, applying: false }));
 
-let registration: ServiceWorkerRegistration | undefined;
-let applyUpdate: ((reload?: boolean) => Promise<void>) | undefined;
-let lastCheck = 0;
-
+const CURRENT_BUILD = `${__APP_BUILD__.commit}|${__APP_BUILD__.date}`;
 /** Vérification automatique au plus une fois par minute (retour au premier plan, reconnexion, minuterie). */
 const AUTO_CHECK_INTERVAL_MS = 60_000;
+/** Délai avant de proposer de repartir de zéro si le service worker ne récupère pas la version en ligne. */
+const STALE_BEFORE_RESET_MS = 15 * 60_000;
+/** Cache conservé lors d'une remise à zéro (OpenCV.js, ≈ 13 Mo, téléchargé à la première utilisation). */
+const KEPT_CACHES = ['mg-opencv'];
+
+let registration: ServiceWorkerRegistration | undefined;
+let lastCheck = 0;
+let staleSince = 0;
 
 export function setRegistration(reg: ServiceWorkerRegistration | undefined): void {
   registration = reg;
 }
 
-export function setUpdater(update: (reload?: boolean) => Promise<void>): void {
-  applyUpdate = update;
+/** Nouvelle version activée par le service worker : rechargement immédiat si l'application est en arrière-plan, sinon bandeau. */
+export function onUpdateActivated(): void {
+  useUpdateStore.setState({ needRefresh: true, hardReset: false, dismissed: false });
+  if (document.visibilityState === 'hidden') void installUpdate();
 }
 
-/** Demande au navigateur de télécharger la dernière version publiée, si elle existe. */
+/** Version publiée en ligne (version.json, jamais mis en cache), ou null si indisponible. */
+async function onlineBuild(): Promise<string | null> {
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const v = (await res.json()) as { commit?: string; date?: string };
+    return v.commit && v.date ? `${v.commit}|${v.date}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Demande au navigateur de télécharger la dernière version publiée, puis la compare à la version en ligne. */
 export async function checkForUpdate(manual = false): Promise<UpdateCheckResult> {
   if (useUpdateStore.getState().needRefresh) return 'available';
   if (!registration) return 'unavailable';
@@ -38,59 +62,110 @@ export async function checkForUpdate(manual = false): Promise<UpdateCheckResult>
   lastCheck = Date.now();
   useUpdateStore.setState({ checking: true });
   try {
-    await registration.update();
-  } catch {
-    return navigator.onLine ? 'unavailable' : 'offline';
+    try {
+      await registration.update();
+    } catch {
+      // Vérifié ci-dessous avec version.json.
+    }
+    if (useUpdateStore.getState().needRefresh) return 'available';
+    const online = await onlineBuild();
+    if (online === null) return navigator.onLine ? 'up-to-date' : 'offline';
+    if (online === CURRENT_BUILD) {
+      staleSince = 0;
+      return 'up-to-date';
+    }
+    if (registration.installing || registration.waiting) return 'downloading';
+    if (!staleSince) staleSince = Date.now();
+    if (manual || Date.now() - staleSince >= STALE_BEFORE_RESET_MS) {
+      useUpdateStore.setState({ needRefresh: true, hardReset: true, dismissed: false });
+      return 'available';
+    }
+    return 'downloading';
   } finally {
     useUpdateStore.setState({ checking: false });
   }
-  return registration.installing || registration.waiting || useUpdateStore.getState().needRefresh ? 'available' : 'up-to-date';
 }
 
-/** Applique la mise à jour après la fin de la sauvegarde automatique en cours (4 s au plus), puis recharge l'application. */
-export async function installUpdate(): Promise<void> {
-  useUpdateStore.setState({ applying: true });
+/** Attend la fin de la sauvegarde automatique en cours (4 s au plus). */
+async function waitForSave(): Promise<void> {
   const deadline = Date.now() + 4000;
   while (['pending', 'saving'].includes(useSaveStatus.getState().status) && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 150));
   }
-  // Le rechargement est normalement fait dès que la nouvelle version prend la main ;
-  // filet de sécurité si la page n'était pas encore gérée par le service worker (première installation).
-  window.setTimeout(() => window.location.reload(), 3000);
-  if (applyUpdate) await applyUpdate(true);
-  else window.location.reload();
+}
+
+/** Ancien service worker « en attente » (versions précédentes) : lui demander de prendre la main. */
+async function activateWaiting(worker: ServiceWorker): Promise<void> {
+  await new Promise<void>((resolve) => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+    worker.postMessage({ type: 'SKIP_WAITING' });
+    window.setTimeout(resolve, 3000);
+  });
+}
+
+/** Repart de zéro : service worker et copie hors connexion supprimés. Les projets (IndexedDB) et les réglages ne sont pas touchés. */
+async function resetOfflineCopy(): Promise<void> {
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.unregister()));
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => !KEPT_CACHES.includes(k)).map((k) => caches.delete(k)));
+    }
+  } catch {
+    // Le rechargement ci-après récupère de toute façon la version en ligne si possible.
+  }
+}
+
+/** Applique la mise à jour après la fin de la sauvegarde en cours, puis recharge l'application. */
+export async function installUpdate(): Promise<void> {
+  if (useUpdateStore.getState().applying) return;
+  useUpdateStore.setState({ applying: true });
+  await waitForSave();
+  if (useUpdateStore.getState().hardReset) await resetOfflineCopy();
+  else if (registration?.waiting) await activateWaiting(registration.waiting);
+  window.location.reload();
 }
 
 const AUTO_APPLY_KEY = 'mg-update-auto-applied-at';
 const LAST_BUILD_KEY = 'mg-last-build';
 
 /**
- * Au lancement : si une nouvelle version a déjà été téléchargée lors d'une utilisation précédente
- * (elle attend depuis), elle est installée tout de suite — fermer / rouvrir l'application suffit.
- * Une seule tentative par minute, pour ne jamais recharger en boucle.
+ * Au lancement : si une nouvelle version attend (service worker d'une version précédente),
+ * elle est installée tout de suite. Une seule tentative par minute, pour ne jamais recharger en boucle.
  */
 export function autoApplyWaitingUpdate(reg: ServiceWorkerRegistration | undefined): boolean {
-  if (!reg?.waiting || !navigator.serviceWorker?.controller) return false;
-  try {
-    const last = Number(sessionStorage.getItem(AUTO_APPLY_KEY) ?? 0);
-    if (Date.now() - last < 60_000) return false;
-    sessionStorage.setItem(AUTO_APPLY_KEY, String(Date.now()));
-  } catch {
-    return false;
-  }
+  if (!reg?.waiting || !navigator.serviceWorker?.controller || !onceAMinute(AUTO_APPLY_KEY)) return false;
   void installUpdate();
   return true;
 }
 
+/** Module introuvable (fichier d'une version précédente supprimé du serveur) : rechargement, une fois par minute au plus. */
+export function reloadAfterChunkError(): boolean {
+  if (!onceAMinute('mg-chunk-reload-at')) return false;
+  void waitForSave().then(() => window.location.reload());
+  return true;
+}
+
+function onceAMinute(key: string): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(key) ?? 0);
+    if (Date.now() - last < 60_000) return false;
+    sessionStorage.setItem(key, String(Date.now()));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Après une mise à jour (version différente de la dernière ouverte) : « Application mise à jour ✓ ». */
 export function takeUpdateAnnouncement(): string | null {
-  const current = `${__APP_BUILD__.commit}|${__APP_BUILD__.date}`;
   try {
     const previous = localStorage.getItem(LAST_BUILD_KEY);
-    localStorage.setItem(LAST_BUILD_KEY, current);
+    localStorage.setItem(LAST_BUILD_KEY, CURRENT_BUILD);
     // Sans version mémorisée : première ouverture après installation (page pas encore gérée par le
     // service worker), ou mise à jour depuis une version antérieure à ce mécanisme (page déjà gérée).
-    const updated = previous ? previous !== current : Boolean(navigator.serviceWorker?.controller);
+    const updated = previous ? previous !== CURRENT_BUILD : Boolean(navigator.serviceWorker?.controller);
     return updated ? `Application mise à jour ✓ (version du ${buildDate()})` : null;
   } catch {
     return null;

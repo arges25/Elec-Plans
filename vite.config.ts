@@ -26,17 +26,29 @@ function commitId(): string {
  */
 const base = process.env.BASE_PATH ?? '/mg-elec-plans/';
 
+const build = { commit: commitId(), date: new Date().toISOString() };
+
 export default defineConfig({
   base,
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __APP_BUILD__: JSON.stringify({ commit: commitId(), date: new Date().toISOString() }),
+    __APP_BUILD__: JSON.stringify(build),
   },
   plugins: [
+    {
+      // version.json (jamais mis en cache) : l'application compare sa version à celle en ligne,
+      // indépendamment du service worker.
+      name: 'mg-version-json',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify(build) });
+      },
+    },
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      // La nouvelle version prend la main dès qu'elle est téléchargée (sur iPhone, l'application
+      // n'est presque jamais complètement fermée : une version « en attente » n'arrivait jamais).
+      registerType: 'autoUpdate',
       injectRegister: false,
       includeAssets: ['logo.svg', 'apple-touch-icon.png', 'favicon-32.png'],
       manifest: {
@@ -62,7 +74,12 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,mjs,css,html,svg,png,webp,ico,woff2,json}'],
         // OpenCV.js (≈10 Mo) n'est pas pré-caché : il est mis en cache à la première utilisation.
-        globIgnores: ['**/opencv-*.js'],
+        globIgnores: ['**/opencv-*.js', '**/version.json'],
+        // Prise en main immédiate (non activée automatiquement avec injectRegister: false).
+        skipWaiting: true,
+        clientsClaim: true,
+        // Recharge les pages ouvertes avec une ancienne version qui ne savent pas le faire seules.
+        importScripts: ['sw-takeover.js'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,

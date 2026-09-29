@@ -6,6 +6,7 @@ const MESSAGES = {
   'up-to-date': () => toast.success('Vous avez la dernière version ✓'),
   offline: () => toast.error('Hors connexion : impossible de rechercher une mise à jour'),
   unavailable: () => toast.info('Recherche de mise à jour indisponible dans ce navigateur'),
+  downloading: () => toast.info('Nouvelle version en cours de téléchargement…', undefined, 4000),
   available: () => useUpdateStore.setState({ dismissed: false }),
 };
 
