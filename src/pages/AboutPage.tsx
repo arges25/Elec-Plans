@@ -5,6 +5,7 @@ import { LogoMark } from '../components/layout/Logo';
 import { Card, SectionTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ELECTRICAL_SYMBOLS } from '../data/electricalSymbols';
+import { buildLabel } from '../pwa/updateStore';
 
 /** À propos : confidentialité, limites, fonctions expérimentales. */
 export default function AboutPage() {
@@ -19,7 +20,7 @@ export default function AboutPage() {
             MG Elec <span className="text-brand-500">&amp;</span> Plans
           </h2>
           <p className="text-gray-600">Vos plans électriques, simplement.</p>
-          <p className="text-xs text-gray-400">Version {__APP_VERSION__}</p>
+          <p className="text-xs text-gray-400">{buildLabel()}</p>
         </div>
 
         <Card className="flex items-start gap-3 p-4">

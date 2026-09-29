@@ -17,6 +17,7 @@ import { exportProjectFile, MGEPLAN_EXTENSION } from '../services/projectTransfe
 import { importProjectWithToast } from '../services/projectActions';
 import { isRemoteReconstructionConfigured } from '../services/planReconstruction/remoteAIPlanReconstruction';
 import { formatBytes } from '../utils/format';
+import { UpdateCard } from '../pwa/UpdateCard';
 
 const COLORS = ['#f97316', '#ea580c', '#facc15', '#2563eb', '#16a34a', '#dc2626', '#7c3aed', '#6b7280', '#111827'];
 
@@ -116,6 +117,7 @@ export default function SettingsPage() {
       <PageBody className="max-w-2xl">
         <SectionTitle>Application</SectionTitle>
         <Card className="px-4 py-2">
+          <UpdateCard />
           <div className="py-2">
             <InstallPrompt force />
           </div>
@@ -304,7 +306,7 @@ export default function SettingsPage() {
           <LinkRow
             icon={<Info className="size-5" />}
             label="À propos de MG Elec & Plans"
-            desc={`Version ${__APP_VERSION__} · Vos projets sont stockés localement sur cet appareil.`}
+            desc="Vos projets sont stockés localement sur cet appareil."
             onClick={() => navigate('/about')}
           />
         </Card>
