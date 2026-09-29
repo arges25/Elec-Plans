@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { toast } from '../store/toastStore';
-import { checkForUpdate, setRegistration, setUpdater, useUpdateStore } from './updateStore';
+import { toast, useToastStore } from '../store/toastStore';
+import { autoApplyWaitingUpdate, checkForUpdate, setRegistration, setUpdater, takeUpdateAnnouncement, useUpdateStore } from './updateStore';
 
 /** Vérification périodique tant que l'application reste ouverte. */
 const PERIODIC_CHECK_MS = 30 * 60_000;
@@ -20,6 +20,7 @@ export function PwaUpdater() {
   } = useRegisterSW({
     onRegisteredSW(_url, reg) {
       setRegistration(reg);
+      autoApplyWaitingUpdate(reg);
     },
     onRegisterError(error) {
       console.warn('Service worker non enregistré', error);
@@ -27,6 +28,11 @@ export function PwaUpdater() {
   });
 
   useEffect(() => setUpdater(updateServiceWorker), [updateServiceWorker]);
+
+  useEffect(() => {
+    const message = takeUpdateAnnouncement();
+    if (message) useToastStore.getState().push({ kind: 'success', message }, 6000);
+  }, []);
 
   useEffect(() => {
     if (offlineReady) {
