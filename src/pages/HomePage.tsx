@@ -14,6 +14,7 @@ import { createDemoProject } from '../services/demo';
 import { toast } from '../store/toastStore';
 import { confirmAndDeleteProject, duplicateProjectWithToast, exportProjectWithToast, importProjectWithToast } from '../services/projectActions';
 import { MGEPLAN_EXTENSION } from '../services/projectTransfer';
+import { buildLabel } from '../pwa/updateStore';
 
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -107,7 +108,9 @@ export function HomePage() {
                 'featured' in l ? 'col-span-2 border-blue-200 hover:border-blue-400 md:col-span-1' : 'border-gray-200 hover:border-brand-300'
               }`}
             >
-              <span className={`flex size-10 items-center justify-center rounded-xl ${'featured' in l ? 'bg-blue-50 text-blue-600' : 'bg-brand-50 text-brand-600'}`}>
+              <span
+                className={`flex size-10 items-center justify-center rounded-xl ${'featured' in l ? 'bg-blue-50 text-blue-600' : 'bg-brand-50 text-brand-600'}`}
+              >
                 <l.icon className="size-5" aria-hidden />
               </span>
               <span className="font-bold leading-tight text-gray-900">{l.label}</span>
@@ -208,6 +211,9 @@ export function HomePage() {
           <button type="button" className="underline" onClick={() => navigate('/about')}>
             À propos
           </button>
+          <span className="mt-1 block" data-testid="home-build-label">
+            {buildLabel()}
+          </span>
         </p>
       </main>
     </div>

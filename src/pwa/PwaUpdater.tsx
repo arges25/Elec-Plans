@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { toast, useToastStore } from '../store/toastStore';
+import { toast } from '../store/toastStore';
 import {
   autoApplyWaitingUpdate,
   checkForUpdate,
@@ -39,8 +39,7 @@ export function PwaUpdater() {
   });
 
   useEffect(() => {
-    const message = takeUpdateAnnouncement();
-    if (message) useToastStore.getState().push({ kind: 'success', message }, 6000);
+    if (takeUpdateAnnouncement()) useUpdateStore.setState({ justUpdated: true });
   }, []);
 
   useEffect(() => {

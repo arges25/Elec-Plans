@@ -179,8 +179,8 @@ git push -u origin main
   - Application ouverte : bandeau orange **« Nouvelle version disponible »** → **Mettre à jour** (la sauvegarde en cours est terminée avant le rechargement ; les projets sont conservés), sinon rechargement automatique au prochain retour dans l’application.
   - Pages ouvertes avec une ancienne version (qui ne savent pas se recharger seules) : rechargées par le service worker (`public/sw-takeover.js`).
   - Filet de sécurité : `version.json` (jamais mis en cache) est comparé à la version de l’application ; si le service worker ne récupère pas la version en ligne, **Mettre à jour** efface la copie hors connexion (jamais les projets ni les réglages) et recharge.
-  - Après chaque mise à jour, le message **« Application mise à jour ✓ »** le confirme.
-- *Réglages → Application → Mise à jour* : version installée (date de publication et commit) et bouton **Rechercher** pour vérifier à la demande.
+  - Après chaque mise à jour, un bandeau vert **« Application mise à jour ✓ »** (avec la version) le confirme et reste affiché jusqu’à **OK**.
+- Version installée affichée en bas de l’accueil. *Réglages → Application → Mise à jour* : version installée (date de publication et commit) et bouton **Rechercher** pour vérifier à la demande.
 
 ### Installation sur iPhone / iPad (Safari)
 
