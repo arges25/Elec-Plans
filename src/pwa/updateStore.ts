@@ -15,9 +15,18 @@ interface UpdateState {
   dismissed: boolean;
   checking: boolean;
   applying: boolean;
+  /** Mise à jour appliquée au lancement : bandeau vert « Application mise à jour ✓ » jusqu'à « OK ». */
+  justUpdated: boolean;
 }
 
-export const useUpdateStore = create<UpdateState>(() => ({ needRefresh: false, hardReset: false, dismissed: false, checking: false, applying: false }));
+export const useUpdateStore = create<UpdateState>(() => ({
+  needRefresh: false,
+  hardReset: false,
+  dismissed: false,
+  checking: false,
+  applying: false,
+  justUpdated: false,
+}));
 
 const CURRENT_BUILD = `${__APP_BUILD__.commit}|${__APP_BUILD__.date}`;
 /** Vérification automatique au plus une fois par minute (retour au premier plan, reconnexion, minuterie). */
@@ -158,17 +167,17 @@ function onceAMinute(key: string): boolean {
   }
 }
 
-/** Après une mise à jour (version différente de la dernière ouverte) : « Application mise à jour ✓ ». */
-export function takeUpdateAnnouncement(): string | null {
+/** Après une mise à jour (version différente de la dernière ouverte) : true, une seule fois. */
+export function takeUpdateAnnouncement(): boolean {
   try {
     const previous = localStorage.getItem(LAST_BUILD_KEY);
     localStorage.setItem(LAST_BUILD_KEY, CURRENT_BUILD);
     // Sans version mémorisée : première ouverture après installation (page pas encore gérée par le
     // service worker), ou mise à jour depuis une version antérieure à ce mécanisme (page déjà gérée).
     const updated = previous ? previous !== CURRENT_BUILD : Boolean(navigator.serviceWorker?.controller);
-    return updated ? `Application mise à jour ✓ (version du ${buildDate()})` : null;
+    return updated;
   } catch {
-    return null;
+    return false;
   }
 }
 

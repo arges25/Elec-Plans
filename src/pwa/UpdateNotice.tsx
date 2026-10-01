@@ -1,5 +1,5 @@
-import { Loader2, RefreshCw, X } from 'lucide-react';
-import { installUpdate, useUpdateStore } from './updateStore';
+import { CheckCircle2, Loader2, RefreshCw, X } from 'lucide-react';
+import { buildLabel, installUpdate, useUpdateStore } from './updateStore';
 
 /**
  * Bandeau « Nouvelle version disponible » : reste affiché tant que l'utilisateur
@@ -8,7 +8,8 @@ import { installUpdate, useUpdateStore } from './updateStore';
 export function UpdateNotice() {
   const show = useUpdateStore((s) => s.needRefresh && !s.dismissed);
   const applying = useUpdateStore((s) => s.applying);
-  if (!show) return null;
+  const justUpdated = useUpdateStore((s) => s.justUpdated);
+  if (!show) return justUpdated ? <UpdatedNotice /> : null;
   return (
     <div
       className="pointer-events-auto w-full max-w-md rounded-2xl bg-brand-500 px-4 py-3 text-sm text-white shadow-xl animate-pop-in"
@@ -42,6 +43,30 @@ export function UpdateNotice() {
       >
         {applying && <Loader2 className="size-4 animate-spin" aria-hidden />}
         {applying ? 'Mise à jour…' : 'Mettre à jour'}
+      </button>
+    </div>
+  );
+}
+
+/** Bandeau vert affiché après une mise à jour : reste jusqu'à « OK » pour ne pas passer inaperçu. */
+function UpdatedNotice() {
+  return (
+    <div
+      className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl bg-green-600 px-4 py-3 text-sm text-white shadow-xl animate-pop-in"
+      data-testid="updated-notice"
+      role="status"
+    >
+      <CheckCircle2 className="size-6 shrink-0" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="font-bold">Application mise à jour ✓</p>
+        <p className="text-xs text-white/90">{buildLabel()}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => useUpdateStore.setState({ justUpdated: false })}
+        className="min-h-10 shrink-0 rounded-xl bg-white px-4 font-bold text-green-700 hover:bg-green-50"
+      >
+        OK
       </button>
     </div>
   );
