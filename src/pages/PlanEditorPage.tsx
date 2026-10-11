@@ -33,6 +33,11 @@ import { startLedTool } from '../components/editor/ledActions';
 import type { ProjectSection } from '../components/layout/ProjectNav';
 import { SupplyFlashCard } from '../components/editor/SupplyFlashCard';
 import { useSupplyFlashStore } from '../store/supplyFlashStore';
+import { useLedDraftStore } from '../store/ledDraftStore';
+import { registerBusyCheck } from '../pwa/updateStore';
+
+/** Outils dont le tracé en cours serait perdu si l'application se rechargeait (mise à jour automatique). */
+const DRAWING_TOOLS = new Set(['wall', 'door', 'window', 'room', 'text', 'arrow', 'circle', 'rect', 'pen', 'measure', 'scale', 'led']);
 
 /** Éditeur électrique (et correction du plan en mode `?mode=correction`). */
 export default function PlanEditorPage() {
@@ -122,6 +127,15 @@ function EditorContent() {
     if (!stillSelected || clientPreview) useSupplyFlashStore.getState().clear();
   }, [selection, tool, clientPreview]);
   useEffect(() => () => useSupplyFlashStore.getState().clear(), []);
+  // La mise à jour automatique attend la fin d'un geste ou d'un tracé
+  useEffect(
+    () =>
+      registerBusyCheck(() => {
+        const s = useEditorStore.getState();
+        return Boolean(s.gestureStart) || DRAWING_TOOLS.has(s.tool) || useLedDraftStore.getState().points.length > 0;
+      }),
+    [],
+  );
 
   const onSection = (s: ProjectSection): boolean => {
     const store = useEditorStore.getState();

@@ -2,11 +2,12 @@ import { CheckCircle2, Loader2, RefreshCw, X } from 'lucide-react';
 import { buildLabel, installUpdate, useUpdateStore } from './updateStore';
 
 /**
- * Bandeau « Nouvelle version disponible » : reste affiché tant que l'utilisateur
- * n'a pas choisi (les notifications ordinaires ne peuvent pas le remplacer).
+ * Bandeau « Mise à jour prête » : n'apparaît que si l'installation automatique attend
+ * une pause depuis un moment (saisie ou tracé en cours) ; « Installer maintenant » l'applique.
  */
 export function UpdateNotice() {
-  const show = useUpdateStore((s) => s.needRefresh && !s.dismissed);
+  // Installation automatique : le bandeau n'apparaît que si elle attend une pause depuis un moment
+  const show = useUpdateStore((s) => s.needRefresh && s.deferred && !s.dismissed);
   const applying = useUpdateStore((s) => s.applying);
   const justUpdated = useUpdateStore((s) => s.justUpdated);
   if (!show) return justUpdated ? <UpdatedNotice /> : null;
@@ -19,8 +20,8 @@ export function UpdateNotice() {
       <div className="flex items-center gap-3">
         <RefreshCw className="size-5 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="font-bold">Nouvelle version disponible</p>
-          <p className="text-xs text-white/90">Vos projets sont conservés.</p>
+          <p className="font-bold">Mise à jour prête</p>
+          <p className="text-xs text-white/90">Elle s’installe toute seule dès que vous faites une pause. Vos projets sont conservés.</p>
         </div>
         {!applying && (
           <button
@@ -42,7 +43,7 @@ export function UpdateNotice() {
         data-testid="update-apply"
       >
         {applying && <Loader2 className="size-4 animate-spin" aria-hidden />}
-        {applying ? 'Mise à jour…' : 'Mettre à jour'}
+        {applying ? 'Mise à jour…' : 'Installer maintenant'}
       </button>
     </div>
   );
@@ -58,7 +59,7 @@ function UpdatedNotice() {
     >
       <CheckCircle2 className="size-6 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="font-bold">Application mise à jour ✓</p>
+        <p className="font-bold">Mise à jour effectuée ✓</p>
         <p className="text-xs text-white/90">{buildLabel()}</p>
       </div>
       <button

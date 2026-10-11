@@ -178,10 +178,10 @@ git push -u origin main
 - Manifest : nom **MG Elec & Plans**, nom court **MG Elec**, affichage `standalone`, orientation `portrait-primary`, couleur de thème `#111827`, fond `#ffffff`, icônes 192 / 512 / maskable 512.
 - Service worker (Workbox via `vite-plugin-pwa`) : toute l’application est mise en cache à la première visite. OpenCV.js (≈ 13 Mo) n’est **pas** pré-chargé : il est mis en cache à sa première utilisation (ou via *Réglages → Croquis → Plan → Préparer*).
 - **Mises à jour** : une nouvelle version prend la main dès qu’elle est téléchargée (pas de version « en attente » : sur iPhone, l’application n’est presque jamais complètement fermée). La recherche a lieu au lancement, à chaque retour au premier plan, à la reconnexion et toutes les 30 minutes.
-  - Application ouverte : bandeau orange **« Nouvelle version disponible »** → **Mettre à jour** (la sauvegarde en cours est terminée avant le rechargement ; les projets sont conservés), sinon rechargement automatique au prochain retour dans l’application.
-  - Pages ouvertes avec une ancienne version (qui ne savent pas se recharger seules) : rechargées par le service worker (`public/sw-takeover.js`).
-  - Filet de sécurité : `version.json` (jamais mis en cache) est comparé à la version de l’application ; si le service worker ne récupère pas la version en ligne, **Mettre à jour** efface la copie hors connexion (jamais les projets ni les réglages) et recharge.
-  - Après chaque mise à jour, un bandeau vert **« Application mise à jour ✓ »** (avec la version) le confirme et reste affiché jusqu’à **OK**.
+  - **Installation automatique**, sans aucun toucher : l’application se recharge toute seule au premier moment calme (3 s sans toucher l’écran, aucune saisie au clavier, aucune fenêtre ouverte, aucun geste ni tracé en cours dans l’éditeur, sauvegarde terminée), ou tout de suite si elle est en arrière-plan. Les projets sont conservés. Si l’attente dure (saisie ou tracé en cours), un bandeau orange **« Mise à jour prête »** propose **Installer maintenant**.
+  - Pages ouvertes avec une ancienne version (qui ne savent pas se recharger seules, ou qui attendaient un toucher sur « Mettre à jour ») : rechargées automatiquement par le service worker (`public/sw-takeover.js`).
+  - Filet de sécurité : `version.json` (jamais mis en cache) est comparé à la version de l’application ; si le service worker ne récupère pas la version en ligne, la mise à jour efface la copie hors connexion (jamais les projets ni les réglages) et recharge.
+  - Après chaque mise à jour, un bandeau vert **« Mise à jour effectuée ✓ »** (avec la version) le confirme et reste affiché jusqu’à **OK**.
 - Version installée affichée en bas de l’accueil. *Réglages → Application → Mise à jour* : version installée (date de publication et commit) et bouton **Rechercher** pour vérifier à la demande.
 
 ### Installation sur iPhone / iPad (Safari)
