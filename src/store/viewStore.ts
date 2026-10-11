@@ -12,6 +12,8 @@ export interface ViewApi {
   center: () => Point;
   /** Exporte la vue actuelle en image (aperçu client, partage rapide). */
   toDataUrl: (pixelRatio?: number) => string | null;
+  /** Recadre la vue (animation courte) pour montrer une zone du plan si elle sort de l'écran, sans zoomer davantage. */
+  reveal?: (bounds: { x1: number; y1: number; x2: number; y2: number }, padding?: Partial<Record<'l' | 'r' | 't' | 'b', number>>) => void;
 }
 
 interface ViewState {
