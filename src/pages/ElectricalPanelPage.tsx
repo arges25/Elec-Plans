@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowDown, ArrowUp, Box, ListOrdered, Pencil, Plus, Tags, Trash2, Wand2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Box, Calculator, ListOrdered, Pencil, Plus, Tags, Trash2, Wand2 } from 'lucide-react';
 import type { ElectricalCircuit, ElectricalPanel } from '../types';
 import { db } from '../database/db';
 import { deleteCircuit, newRow, saveCircuit, saveCircuits, savePanel } from '../database/panelRepository';
@@ -136,10 +136,24 @@ export default function ElectricalPanelPage() {
           </Button>
         </Card>
 
+        {panel.projectId && (
+          <Card className="mt-3 flex flex-col gap-3 border-brand-200 bg-brand-50/70 p-4 sm:flex-row sm:items-center">
+            <Calculator className="size-7 shrink-0 text-brand-600" aria-hidden />
+            <p className="flex-1 text-sm text-gray-700">
+              <strong>Récapitulatif / Calcul du tableau</strong> : comptage sur tous les niveaux, contrôle NF C 15-100 de chaque circuit, répartition
+              automatique et liste du matériel.
+            </p>
+            <Button variant="primary" icon={<Calculator className="size-4" aria-hidden />} onClick={() => navigate(`/project/${panel.projectId}/recap`)}>
+              Récapitulatif
+            </Button>
+          </Card>
+        )}
+
         <Card className="mt-3 flex flex-col gap-3 border-blue-200 bg-blue-50/60 p-4 sm:flex-row sm:items-center">
           <Box className="size-7 shrink-0 text-blue-600" aria-hidden />
           <p className="flex-1 text-sm text-gray-700">
-            <strong>Configurateur de tableau 3D</strong> : coffret Legrand, Schneider ou Hager à l’échelle, appareils sur rail DIN, étiquettes au-dessus des appareils.
+            <strong>Configurateur de tableau 3D</strong> : coffret Legrand, Schneider ou Hager à l’échelle, appareils sur rail DIN, étiquettes au-dessus des
+            appareils.
           </p>
           <Button
             icon={<Box className="size-4" aria-hidden />}

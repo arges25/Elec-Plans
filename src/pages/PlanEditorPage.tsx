@@ -31,6 +31,8 @@ import { Sheet } from '../components/ui/Sheet';
 import { addSymbolAtCenter, beginPlacing } from '../components/editor/editorActions';
 import { startLedTool } from '../components/editor/ledActions';
 import type { ProjectSection } from '../components/layout/ProjectNav';
+import { SupplyFlashCard } from '../components/editor/SupplyFlashCard';
+import { useSupplyFlashStore } from '../store/supplyFlashStore';
 
 /** Éditeur électrique (et correction du plan en mode `?mode=correction`). */
 export default function PlanEditorPage() {
@@ -111,6 +113,15 @@ function EditorContent() {
     return () => clearTimeout(t);
   }, [clientPreview, ready]);
   useKeyboardShortcuts(ready);
+
+  // Flash « Alimentation » : s'efface dès que l'élément n'est plus sélectionné (ou en quittant le plan)
+  useEffect(() => {
+    const flash = useSupplyFlashStore.getState().flash;
+    if (!flash) return;
+    const stillSelected = tool === 'select' && selection?.kind === 'symbol' && selection.ids.includes(flash.symbolId);
+    if (!stillSelected || clientPreview) useSupplyFlashStore.getState().clear();
+  }, [selection, tool, clientPreview]);
+  useEffect(() => () => useSupplyFlashStore.getState().clear(), []);
 
   const onSection = (s: ProjectSection): boolean => {
     const store = useEditorStore.getState();
@@ -196,6 +207,11 @@ function EditorContent() {
             </div>
           )}
           {!clientPreview && <ZoomControls className="absolute right-3 top-3 z-10" />}
+          {!clientPreview && (
+            <div className="pointer-events-none absolute left-3 right-20 top-3 z-20 flex justify-center">
+              <SupplyFlashCard />
+            </div>
+          )}
           {!clientPreview && (
             <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex flex-col items-stretch gap-2 px-3 pr-20">
               {tool === 'place' && placeSymbolId && <PlaceModeBar />}

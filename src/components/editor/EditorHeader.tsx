@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ArrowLeft,
+  Calculator,
   ChevronDown,
   Crop,
   DraftingCompass,
@@ -120,6 +121,11 @@ export function EditorHeader({ project, planId, desktop, correction, onSection, 
           />
           <div className="my-1 h-px bg-gray-100" />
           <MenuItem icon={<Grid3x3 className="size-5" />} label="Tableau électrique" onClick={run(() => project && navigate(`/project/${project.id}/panel`))} />
+          <MenuItem
+            icon={<Calculator className="size-5" />}
+            label="Récapitulatif / Calcul du tableau"
+            onClick={run(() => project && navigate(`/project/${project.id}/recap`))}
+          />
           <MenuItem icon={<FileDown className="size-5" />} label="Exporter en PDF" onClick={run(() => project && navigate(`/project/${project.id}/export`))} />
           <MenuItem
             icon={<FileDown className="size-5" />}

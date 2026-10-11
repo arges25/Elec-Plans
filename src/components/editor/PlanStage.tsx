@@ -20,6 +20,7 @@ import { DraftPreview, Guides, OpeningHandle, SelectionTransformer, WallHandles,
 import { editorRuntime, hapticTick, isDuplicateActivation, stopActiveDrag } from './runtime';
 import { placeSymbolAt } from './editorActions';
 import { LedDraftPreview, LedStripHandles, LedStripNode } from './konva/LedStripLayer';
+import { SupplyFlashLayer } from './konva/SupplyFlashLayer';
 import { commitLedDraft, defaultLedWidth } from './ledActions';
 import { useLedDraftStore } from '../../store/ledDraftStore';
 import { LED_DEFAULT_COLOR, snapLedPoint } from '../../utils/ledStrip';
@@ -145,9 +146,31 @@ export function PlanStage() {
         return { x: (st.width() / 2 - st.x()) / st.scaleX(), y: (st.height() / 2 - st.y()) / st.scaleX() };
       },
       toDataUrl: (pixelRatio = 2) => stageRef.current?.toDataURL({ pixelRatio }) ?? null,
+      reveal: (b, padding) => {
+        const stage = stageRef.current;
+        if (!stage) return;
+        // Marges par défaut : carte « Alimentation » en haut, barre d'actions en bas, zoom à droite
+        const pad = { l: 24, r: 72, t: 190, b: 110, ...padding };
+        const W = stage.width();
+        const H = stage.height();
+        const s = stage.scaleX();
+        const visible = {
+          x1: (pad.l - stage.x()) / s,
+          y1: (pad.t - stage.y()) / s,
+          x2: (W - pad.r - stage.x()) / s,
+          y2: (H - pad.b - stage.y()) / s,
+        };
+        if (b.x1 >= visible.x1 && b.y1 >= visible.y1 && b.x2 <= visible.x2 && b.y2 <= visible.y2) return;
+        const availW = Math.max(60, W - pad.l - pad.r);
+        const availH = Math.max(60, H - pad.t - pad.b);
+        const ns = Math.max(MIN_ZOOM, Math.min(s, availW / Math.max(1, b.x2 - b.x1), availH / Math.max(1, b.y2 - b.y1)));
+        const x = pad.l + availW / 2 - ((b.x1 + b.x2) / 2) * ns;
+        const y = pad.t + availH / 2 - ((b.y1 + b.y2) / 2) * ns;
+        stage.to({ x, y, scaleX: ns, scaleY: ns, duration: 0.35, easing: Konva.Easings.EaseInOut, onFinish: syncView });
+      },
     });
     return () => setApi(null);
-  }, [fit, applyZoom, setApi, planW, planH]);
+  }, [fit, applyZoom, setApi, planW, planH, syncView]);
 
   useEffect(() => {
     if (!plan || size.w < 50) return;
@@ -746,6 +769,9 @@ export function PlanStage() {
             )}
           </Group>
         </Layer>
+
+        {/* Flash « Alimentation » : chemin de l'élément jusqu'au tableau */}
+        {!clientPreview && <SupplyFlashLayer zoom={zoom} />}
 
         {/* Surcouche : aperçus, repères, poignées */}
         {!clientPreview && (

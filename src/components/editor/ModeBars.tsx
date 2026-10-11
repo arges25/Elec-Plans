@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Cable, Check, Copy, FlipHorizontal2, Minus, Palette, Pencil, Plus, RefreshCw, RotateCw, Settings2, Spline, Trash2, Undo2, X } from 'lucide-react';
+import { Cable, Check, Copy, FlipHorizontal2, Minus, Palette, Pencil, Plus, RefreshCw, RotateCw, Settings2, Spline, Trash2, Undo2, X, Zap } from 'lucide-react';
 import type { ConnectionType } from '../../types';
 import { getSymbolDefinition } from '../../data/electricalSymbols';
 import { docOps, useEditorStore } from '../../store/editorStore';
@@ -13,6 +13,9 @@ import { useLedDraftStore } from '../../store/ledDraftStore';
 import { LED_COLORS, LED_DEFAULT_LABEL, ledLength, ledLengthMeters, toFlat } from '../../utils/ledStrip';
 import { LedStripIcon } from '../symbols/LedStripIcon';
 import { finishLedTool, startLedTool, undoLedPoint } from './ledActions';
+import { useSupplyFlashStore } from '../../store/supplyFlashStore';
+import { supplyInfo } from '../../utils/supplyPath';
+import { showSupply } from './supplyActions';
 
 function Action({ label, icon, onClick, danger, primary }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; primary?: boolean }) {
   return (
@@ -41,6 +44,7 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
   const selection = useEditorStore((s) => s.selection);
   const tool = useEditorStore((s) => s.tool);
   const doc = useEditorStore((s) => s.doc);
+  const flashSymbolId = useSupplyFlashStore((s) => s.flash?.symbolId);
   if (!selection || tool !== 'select') return null;
   const st = useEditorStore.getState();
   const single = selection.ids.length === 1 ? selection.ids[0] : null;
@@ -48,10 +52,22 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
   const I = 'size-5';
 
   switch (selection.kind) {
-    case 'symbol':
+    case 'symbol': {
+      const symbolType = single ? (doc.symbols.find((s) => s.id === single)?.symbolType ?? '') : '';
+      // « Alimentation » : prises, appareils, interrupteurs et éclairages
+      const supply = single ? supplyInfo(symbolType) : null;
+      const flashing = Boolean(single && flashSymbolId === single);
       return (
         <Bar>
-          {single && <SymbolIcon id={doc.symbols.find((s) => s.id === single)?.symbolType ?? ''} size={30} className="mx-1" />}
+          {single && <SymbolIcon id={symbolType} size={30} className="mx-1" />}
+          {single && supply && (
+            <Action
+              label="Alimentation"
+              primary={flashing}
+              icon={<Zap className={I} aria-hidden style={flashing ? undefined : { color: supply.color }} />}
+              onClick={() => (flashing ? useSupplyFlashStore.getState().clear() : void showSupply(single))}
+            />
+          )}
           <Action label="Tourner" icon={<RotateCw className={I} aria-hidden />} onClick={() => st.rotateSelection(90)} />
           <Action label="+1" icon={<Copy className={I} aria-hidden />} onClick={() => st.duplicateSelection(20)} />
           {single && (
@@ -68,6 +84,7 @@ export function SelectionMenu({ onProperties }: { onProperties: () => void }) {
           {del}
         </Bar>
       );
+    }
     case 'wall': {
       const wall = single ? doc.walls.find((w) => w.id === single) : undefined;
       return (

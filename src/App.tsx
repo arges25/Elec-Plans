@@ -18,6 +18,7 @@ const SymbolLibraryPage = lazy(() => import('./pages/SymbolLibraryPage'));
 const ExportPage = lazy(() => import('./pages/ExportPage'));
 const ProjectPanelRedirect = lazy(() => import('./pages/ProjectPanelRedirect'));
 const ElectricalPanelPage = lazy(() => import('./pages/ElectricalPanelPage'));
+const PanelRecapPage = lazy(() => import('./pages/PanelRecapPage'));
 const LabelsHomePage = lazy(() => import('./pages/LabelsHomePage'));
 const LabelsPage = lazy(() => import('./pages/LabelsPage'));
 const LabelPreviewPage = lazy(() => import('./pages/LabelPreviewPage'));
@@ -56,6 +57,7 @@ export function App() {
             <Route path="/project/:projectId/plan/:planId/sketch" element={<SketchToPlanPage />} />
             <Route path="/project/:projectId/export" element={<ExportPage />} />
             <Route path="/project/:projectId/panel" element={<ProjectPanelRedirect />} />
+            <Route path="/project/:projectId/recap" element={<PanelRecapPage />} />
             <Route path="/panel/:panelId" element={<ElectricalPanelPage />} />
             <Route path="/panel/:panelId/labels" element={<LabelsPage />} />
             <Route path="/panel/:panelId/preview" element={<LabelPreviewPage />} />
