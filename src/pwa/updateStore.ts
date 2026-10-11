@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useSaveStatus } from '../store/saveStatusStore';
+import { useDialogStore } from '../store/dialogStore';
 
 export type UpdateCheckResult = 'available' | 'downloading' | 'up-to-date' | 'offline' | 'unavailable';
 
@@ -13,9 +14,14 @@ interface UpdateState {
   hardReset: boolean;
   /** L'utilisateur a choisi « Plus tard » : le bandeau est masqué jusqu'au prochain lancement. */
   dismissed: boolean;
+  /**
+   * L'installation automatique attend une pause depuis un moment (saisie, tracé en cours…) :
+   * le bandeau « Installer maintenant » est alors proposé.
+   */
+  deferred: boolean;
   checking: boolean;
   applying: boolean;
-  /** Mise à jour appliquée au lancement : bandeau vert « Application mise à jour ✓ » jusqu'à « OK ». */
+  /** Mise à jour appliquée au lancement : bandeau vert « Mise à jour effectuée ✓ » jusqu'à « OK ». */
   justUpdated: boolean;
 }
 
@@ -23,6 +29,7 @@ export const useUpdateStore = create<UpdateState>(() => ({
   needRefresh: false,
   hardReset: false,
   dismissed: false,
+  deferred: false,
   checking: false,
   applying: false,
   justUpdated: false,
@@ -44,10 +51,74 @@ export function setRegistration(reg: ServiceWorkerRegistration | undefined): voi
   registration = reg;
 }
 
-/** Nouvelle version activée par le service worker : rechargement immédiat si l'application est en arrière-plan, sinon bandeau. */
+/** Nouvelle version activée par le service worker : elle est installée automatiquement dès que possible. */
 export function onUpdateActivated(): void {
   useUpdateStore.setState({ needRefresh: true, hardReset: false, dismissed: false });
-  if (document.visibilityState === 'hidden') void installUpdate();
+  scheduleAutoInstall();
+}
+
+/* ------------------------------------------------------------------ */
+/* Installation automatique                                            */
+/* ------------------------------------------------------------------ */
+
+/** Pause minimale sans toucher l'écran ni le clavier avant de recharger (ms). */
+const IDLE_BEFORE_INSTALL_MS = 3000;
+/** Au-delà, le bandeau « Installer maintenant » est proposé (ms). */
+const DEFER_NOTICE_MS = 20_000;
+let lastInteraction = 0;
+/** Pages qui signalent une action en cours (ex. éditeur : geste ou tracé non terminé). */
+const busyChecks = new Set<() => boolean>();
+
+/** Une page déclare quand un rechargement ferait perdre une action en cours ; renvoie la fonction de retrait. */
+export function registerBusyCheck(check: () => boolean): () => void {
+  busyChecks.add(check);
+  return () => {
+    busyChecks.delete(check);
+  };
+}
+let autoTimer: number | null = null;
+
+/** Appelé à chaque toucher / frappe : l'installation attend une pause. */
+export function noteInteraction(): void {
+  lastInteraction = Date.now();
+}
+
+/**
+ * Peut-on recharger sans gêner ? Aucune saisie au clavier, aucune fenêtre de dialogue,
+ * aucun geste ni tracé en cours dans l'éditeur, sauvegarde terminée, et 3 s sans toucher l'écran.
+ */
+export function isSafeToReload(now = Date.now()): boolean {
+  if (now - lastInteraction < IDLE_BEFORE_INSTALL_MS) return false;
+  const el = document.activeElement as HTMLElement | null;
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return false;
+  if (useDialogStore.getState().current) return false;
+  for (const busy of busyChecks) if (busy()) return false;
+  return !['pending', 'saving'].includes(useSaveStatus.getState().status);
+}
+
+/** Installe la nouvelle version au premier moment calme (immédiatement si l'application est en arrière-plan). */
+function scheduleAutoInstall(): void {
+  if (autoTimer !== null) return;
+  const since = Date.now();
+  const tick = () => {
+    const s = useUpdateStore.getState();
+    if (!s.needRefresh || s.applying) return stopAutoInstall();
+    if (document.visibilityState === 'hidden' || isSafeToReload()) {
+      stopAutoInstall();
+      // Garde-fou : jamais plus d'un rechargement automatique toutes les 2 minutes
+      if (onceEvery(AUTO_INSTALL_KEY, 120_000)) void installUpdate();
+      else useUpdateStore.setState({ deferred: true });
+      return;
+    }
+    if (!s.deferred && Date.now() - since > DEFER_NOTICE_MS) useUpdateStore.setState({ deferred: true });
+  };
+  autoTimer = window.setInterval(tick, 1000);
+  tick();
+}
+
+function stopAutoInstall(): void {
+  if (autoTimer !== null) window.clearInterval(autoTimer);
+  autoTimer = null;
 }
 
 /** Version publiée en ligne (version.json, jamais mis en cache), ou null si indisponible. */
@@ -87,6 +158,7 @@ export async function checkForUpdate(manual = false): Promise<UpdateCheckResult>
     if (!staleSince) staleSince = Date.now();
     if (manual || Date.now() - staleSince >= STALE_BEFORE_RESET_MS) {
       useUpdateStore.setState({ needRefresh: true, hardReset: true, dismissed: false });
+      scheduleAutoInstall();
       return 'available';
     }
     return 'downloading';
@@ -137,6 +209,7 @@ export async function installUpdate(): Promise<void> {
 }
 
 const AUTO_APPLY_KEY = 'mg-update-auto-applied-at';
+const AUTO_INSTALL_KEY = 'mg-update-auto-installed-at';
 const LAST_BUILD_KEY = 'mg-last-build';
 
 /**
@@ -157,9 +230,14 @@ export function reloadAfterChunkError(): boolean {
 }
 
 function onceAMinute(key: string): boolean {
+  return onceEvery(key, 60_000);
+}
+
+/** Vrai au plus une fois par période (mémorisé pour la session, survit au rechargement). */
+function onceEvery(key: string, periodMs: number): boolean {
   try {
     const last = Number(sessionStorage.getItem(key) ?? 0);
-    if (Date.now() - last < 60_000) return false;
+    if (Date.now() - last < periodMs) return false;
     sessionStorage.setItem(key, String(Date.now()));
     return true;
   } catch {
